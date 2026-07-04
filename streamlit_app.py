@@ -349,10 +349,7 @@ def _capture_group_scores(torneo, group):
         st.warning("No hay jugadores en este grupo.")
         return
 
-    saved_holes = {s["hole_number"] for s in db.get_scores(torneo["id"]) if any(
-        (s.get("player_id") == p.get("player_id") or s.get("guest_id") == p.get("guest_id"))
-        for p in players
-    )}
+    saved_holes = {s["hole_number"] for s in db.get_scores(torneo["id"]) if s.get("group_id") == group["id"]}
 
     hole_list = [
         f"{'✅ ' if h['hole_number'] in saved_holes else ''}Hoyo {h['hole_number']} — Par {h['par']} | HCP {h['handicap']}"
