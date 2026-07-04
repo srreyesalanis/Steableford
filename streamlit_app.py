@@ -292,8 +292,17 @@ def capture_scores_ui():
         st.warning("No hay jugadores en este torneo.")
         return
 
+    # Marcar hoyos que ya tienen scores guardados
+    saved_holes = set()
+    scores_all = db.get_scores(torneo["id"])
+    for s in scores_all:
+        saved_holes.add(s["hole_number"])
+
     # Selector de hoyo
-    hole_options = {f"Hoyo {h['hole_number']} — Par {h['par']} | HCP {h['handicap']}": h for h in holes}
+    hole_options = {
+        f"{'✅ ' if h['hole_number'] in saved_holes else ''}Hoyo {h['hole_number']} — Par {h['par']} | HCP {h['handicap']}": h
+        for h in holes
+    }
     hole_label = st.selectbox("Hoyo", list(hole_options.keys()), key="score_hole")
     hole = hole_options[hole_label]
     hnum = hole["hole_number"]
