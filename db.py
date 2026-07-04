@@ -11,13 +11,14 @@ def get_client():
 
 
 def get_authed_client():
-    """Devuelve el cliente con el token del usuario autenticado si existe."""
-    sb = get_client()
+    """Crea un cliente fresco con el token del usuario autenticado."""
     access_token = st.session_state.get("access_token")
     refresh_token = st.session_state.get("refresh_token")
     if access_token and refresh_token:
-        sb.auth.set_session(access_token, refresh_token)
-    return sb
+        client = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+        client.auth.set_session(access_token, refresh_token)
+        return client
+    return get_client()
 
 
 def sign_in(email: str, password: str):
