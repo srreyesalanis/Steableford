@@ -115,6 +115,20 @@ def get_tournament(tournament_id: str):
     return res.data
 
 
+def delete_tournament(tournament_id: str):
+    """Borra el torneo y todo lo relacionado en cascada."""
+    sb = get_authed_client()
+    # Borrar en orden: scores → group_players → groups → guests → tournament
+    sb.table("tournament_scores").delete().eq("tournament_id", tournament_id).execute()
+    # Obtener grupos para borrar group_players
+    groups = sb.table("groups").select("id").eq("tournament_id", tournament_id).execute().data or []
+    for g in groups:
+        sb.table("group_players").delete().eq("group_id", g["id"]).execute()
+    sb.table("groups").delete().eq("tournament_id", tournament_id).execute()
+    sb.table("guests").delete().eq("tournament_id", tournament_id).execute()
+    sb.table("tournaments").delete().eq("id", tournament_id).execute()
+
+
 # ── Groups ─────────────────────────────────────────────────────────────────────
 
 def create_group(tournament_id: str, name: str, access_code: str):

@@ -78,13 +78,16 @@ def admin_login():
 def admin_panel():
     st.title("⛳ Admin — Stableford")
 
-    tab_create, tab_scores = st.tabs(["➕ Crear Torneo", "🎯 Capturar Scores"])
+    tab_create, tab_scores, tab_delete = st.tabs(["➕ Crear Torneo", "🎯 Capturar Scores", "🗑️ Borrar Torneo"])
 
     with tab_create:
         create_tournament_ui()
 
     with tab_scores:
         capture_scores_ui()
+
+    with tab_delete:
+        delete_tournament_ui()
 
 
 # ── Crear Torneo ───────────────────────────────────────────────────────────────
@@ -204,6 +207,30 @@ def create_tournament_ui():
         ss_set("player_rows", [{"type": "registered", "data": None}])
         st.success(f"✅ Torneo **{torneo_nombre}** creado. Código de acceso: `{access_code}`")
         st.balloons()
+
+
+# ── Borrar Torneo ──────────────────────────────────────────────────────────────────────────────
+
+def delete_tournament_ui():
+    st.header("🗑️ Borrar Torneo")
+
+    tournaments = db.get_tournaments()
+    if not tournaments:
+        st.info("No hay torneos creados.")
+        return
+
+    t_map = {f"{t['name']} ({t['date']})": t for t in tournaments}
+    t_label = st.selectbox("Selecciona el torneo a borrar", list(t_map.keys()), key="delete_tournament")
+    torneo = t_map[t_label]
+
+    st.warning(f"⚠️ Esto borrará **{torneo['name']}** y todos sus scores, grupos y jugadores. Esta acción no se puede deshacer.")
+
+    confirm = st.checkbox("Confirmo que quiero borrar este torneo", key="delete_confirm")
+
+    if st.button("🗑️ Borrar Torneo", type="primary", disabled=not confirm):
+        db.delete_tournament(torneo["id"])
+        st.success(f"✅ Torneo **{torneo['name']}** borrado.")
+        st.rerun()
 
 
 # ── Capturar Scores ────────────────────────────────────────────────────────────
