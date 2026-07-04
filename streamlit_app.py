@@ -407,10 +407,9 @@ def leaderboard_ui():
     scores_raw = db.get_scores(torneo["id"])
 
     from collections import defaultdict
-    pts_by_player = defaultdict(int)
-    holes_by_player = defaultdict(int)
 
     hcp_map = {p["player_id"] or p["guest_id"]: p["course_handicap"] for p in players}
+    name_map = {p["player_id"] or p["guest_id"]: p["player_name"] for p in players}
 
     sb = db.get_authed_client()
     tee_id = torneo.get("tee_id")
@@ -423,7 +422,14 @@ def leaderboard_ui():
     if course_id:
         course_res = sb.table("courses").select("id").eq("id", course_id).execute()
         course = course_res.data[0] if course_res.data else {}
-    holes = {h["hole_number"]: h for h in db.get_holes(course.get("id", ""))}
+    holes_list = db.get_holes(course.get("id", ""))
+    holes = {h["hole_number"]: h for h in holes_list}
+    hole_nums = sorted(holes.keys())
+
+    # Calcular puntos y golpes por jugador por hoyo
+    pts_by_player = defaultdict(int)
+    holes_by_player = defaultdict(int)
+    detail = defaultdict(dict)  # detail[pid][hole_number] = {strokes, points}
 
     for s in scores_raw:
         pid = s.get("player_id") or s.get("guest_id")
@@ -434,22 +440,50 @@ def leaderboard_ui():
         calc = sf.calc_hole(s["strokes"], hole["par"], ch, hole["handicap"])
         pts_by_player[pid] += calc["points"]
         holes_by_player[pid] += 1
+        detail[pid][s["hole_number"]] = {"strokes": s["strokes"], "points": calc["points"]}
 
-    rows = []
+    # Ranking
+    ranked = []
     for p in players:
         pid = p.get("player_id") or p.get("guest_id")
-        rows.append({
-            "Jugador": p["player_name"],
-            "Hoyos": holes_by_player.get(pid, 0),
-            "Puntos": pts_by_player.get(pid, 0),
-        })
+        ranked.append({"pid": pid, "name": p["player_name"], "pts": pts_by_player.get(pid, 0), "hoyos": holes_by_player.get(pid, 0)})
+    ranked.sort(key=lambda x: -x["pts"])
 
-    rows.sort(key=lambda x: -x["Puntos"])
-
-    for i, r in enumerate(rows):
+    # Leaderboard summary
+    for i, r in enumerate(ranked):
         medal = ["🥇", "🥈", "🥉"][i] if i < 3 else f"{i+1}."
+        st.markdown(f"**{medal} {r['name']}** — {r['pts']} pts &nbsp;&nbsp; _(Hoyos: {r['hoyos']})_")
+
+    # Tabla detalle por hoyo
+    if hole_nums and any(detail.values()):
+        st.divider()
+        st.subheader("📊 Detalle por hoyo")
+
+        # Construir HTML de tabla
+        header = "<tr><th style='text-align:left;padding:4px 8px'>Jugador</th>"
+        for h in hole_nums:
+            par = holes[h]["par"]
+            header += f"<th style='text-align:center;padding:4px 6px'>H{h}<br><span style='font-size:0.7rem;color:#888'>P{par}</span></th>"
+        header += "<th style='text-align:center;padding:4px 8px'>Total</th></tr>"
+
+        body = ""
+        for r in ranked:
+            pid = r["pid"]
+            body += f"<tr><td style='padding:4px 8px;white-space:nowrap'><b>{r['name']}</b></td>"
+            for h in hole_nums:
+                d = detail[pid].get(h)
+                if d:\n                    pts = d["points"]
+                    strokes = d["strokes"]
+                    bg = "#c8e6c9" if pts >= 3 else "#fff9c4" if pts == 2 else "#ffcdd2" if pts == 1 else "#ef9a9a"
+                    body += f"<td style='text-align:center;background:{bg};padding:4px 6px'>{strokes}<br><span style='font-size:0.75rem;font-weight:bold'>{pts}p</span></td>"
+                else:
+                    body += "<td style='text-align:center;color:#ccc;padding:4px 6px'>—</td>"
+            body += f"<td style='text-align:center;font-weight:bold;padding:4px 8px'>{r['pts']}</td></tr>"
+
         st.markdown(
-            f"**{medal} {r['Jugador']}** — {r['Puntos']} pts &nbsp;&nbsp; _(Hoyos: {r['Hoyos']})_"
+            f"<div style='overflow-x:auto'><table style='border-collapse:collapse;width:100%;font-size:0.85rem'>"
+            f"{header}{body}</table></div>",
+            unsafe_allow_html=True
         )
 
 
