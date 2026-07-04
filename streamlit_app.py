@@ -393,6 +393,7 @@ def _capture_group_scores(torneo, group):
     existing_all = ss_get(cache_key)
 
     COLORS = ["#e3f2fd", "#f3e5f5", "#e8f5e9", "#fff8e1", "#fce4ec", "#e0f7fa", "#f1f8e9", "#ede7f6"]
+    PTS_COLORS = {4: "#66bb6a", 3: "#aed581", 2: "#fff176", 1: "#ffb74d", 0: "#ef9a9a"}
 
     scores_input = {}
     for idx, player in enumerate(players):
@@ -400,37 +401,90 @@ def _capture_group_scores(torneo, group):
         received = sf.strokes_received(course_hcp, hh)
         existing = existing_all.get(player["id"], {})
         saved = existing.get(hnum, {})
-        default_strokes = saved.get("strokes", par)
 
         color = COLORS[idx % len(COLORS)]
         ventaja = f" | Ventaja: {received}" if received > 0 else ""
 
         gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
+        # Hoyo nuevo: default None (en blanco); hoyo ya guardado: mostrar valor guardado
         if gross_key not in st.session_state:
-            st.session_state[gross_key] = default_strokes
+            st.session_state[gross_key] = saved.get("strokes", None)
 
-        gross = st.number_input(
-            f"{player['player_name']} — HCP {course_hcp}{ventaja}",
-            min_value=1, max_value=15,
-            value=st.session_state[gross_key],
-            key=gross_key,
-        )
-        calc = sf.calc_hole(gross, par, course_hcp, hh)
+        current_gross = st.session_state.get(gross_key)
+
+        # ── Card del jugador ──
+        if current_gross is not None:
+            calc = sf.calc_hole(current_gross, par, course_hcp, hh)
+            pts_color = PTS_COLORS.get(calc["points"], "#fff")
+            result_html = (
+                f" &nbsp;<span style='background:{pts_color};border-radius:6px;padding:2px 8px;font-weight:bold'>"
+                f"Net {calc['net']} • {calc['points']}pts</span>"
+            )
+        else:
+            calc = None
+            result_html = " &nbsp;<span style='color:#aaa'>sin capturar</span>"
+
         st.markdown(
-            f"<div style='background:{color};border-radius:8px;padding:6px 14px;margin-top:-12px;margin-bottom:12px;font-size:0.85rem'>"
-            f"Net: <b>{calc['net']}</b> &nbsp;&nbsp; Pts: <b>{calc['points']}</b>"
+            f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
+            f"<b>{player['player_name']}</b> "
+            f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
+            f"{result_html}"
             f"</div>",
             unsafe_allow_html=True
         )
-        scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
 
-    if st.button(f"💾 Guardar Hoyo {hnum}", type="primary", use_container_width=True):
+        # ── Picker de golpes: pills 1-9 + number_input para más ──
+        pill_cols = st.columns(10)
+        for n in range(1, 10):
+            selected = (current_gross == n)
+            btn_style = "primary" if selected else "secondary"
+            if pill_cols[n-1].button(
+                str(n),
+                key=f"pill_{gross_key}_{n}",
+                type=btn_style,
+                use_container_width=True
+            ):
+                st.session_state[gross_key] = n
+                st.rerun()
+        manual = pill_cols[9].number_input(
+            "+", min_value=10, max_value=20,
+            value=current_gross if (current_gross and current_gross >= 10) else 10,
+            key=f"manual_{gross_key}",
+            label_visibility="collapsed"
+        )
+        # Si el usuario edita el number_input y es >= 10, tomarlo
+        if current_gross is None or current_gross < 10:
+            pass  # no sobreescribir si ya hay pill seleccionada
+        else:
+            if manual != current_gross:
+                st.session_state[gross_key] = manual
+                st.rerun()
+
+        st.markdown(
+            f"<div style='background:{color};border-radius:0 0 10px 10px;height:5px;margin-bottom:12px'></div>",
+            unsafe_allow_html=True
+        )
+
+        final_gross = st.session_state.get(gross_key)
+        if final_gross is not None:
+            scores_input[player["id"]] = {
+                "player": player,
+                "gross": final_gross,
+                "calc": sf.calc_hole(final_gross, par, course_hcp, hh)
+            }
+        else:
+            scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
+
+    all_captured = all(v["gross"] is not None for v in scores_input.values())
+    if st.button(f"💾 Guardar Hoyo {hnum}", type="primary", use_container_width=True, disabled=not all_captured):
         submitted = True
     else:
         submitted = False
 
     if submitted:
         for pid, s in scores_input.items():
+            if s["gross"] is None:
+                continue
             p = s["player"]
             db.upsert_score(
                 tournament_id=torneo["id"],
