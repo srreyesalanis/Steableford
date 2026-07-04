@@ -208,9 +208,16 @@ def create_tournament_ui():
 
             for r in valid:
                 d = r["data"]
-                ch = db.round_hcp(d["handicap_index"])
                 guest_id = None
                 player_id = d.get("player_id")
+
+                # Calcular Course Handicap real: HI × (Slope/113) + (CR - Par)
+                ch = sf.course_handicap(
+                    d["handicap_index"],
+                    selected_tee["slope"],
+                    float(selected_tee["rating"]),
+                    selected_tee["par"],
+                )
 
                 if d.get("guest"):
                     guest = db.create_guest(d["name"], d["handicap_index"], torneo["id"])
@@ -600,12 +607,27 @@ def leaderboard_ui():
 def group_leader_ui():
     st.title("⛳ Capturar Scores — Grupo")
 
+    # ── Restaurar sesión desde query params (persiste al bloquear celular) ──
+    if not ss_get("group_auth"):
+        params = st.query_params
+        code_from_url = params.get("code", None)
+        if code_from_url and not ss_get("_restoring_code"):
+            ss_set("_restoring_code", True)
+            result = db.get_group_by_code(code_from_url)
+            if result:
+                ss_set("group_auth", {"group": result["group"], "torneo": result["torneo"]})
+                ss_set("_restoring_code", False)
+                st.rerun()
+            else:
+                ss_set("_restoring_code", False)
+
     if ss_get("group_auth"):
         group = ss_get("group_auth")["group"]
         torneo = ss_get("group_auth")["torneo"]
         st.success(f"✅ {group['name']} — {torneo['name']}")
         if st.button("🔄 Cambiar grupo"):
             ss_set("group_auth", None)
+            st.query_params.clear()
             st.rerun()
         _capture_group_scores(torneo, group)
         return
@@ -624,6 +646,8 @@ def group_leader_ui():
         group = result["group"]
         torneo = result["torneo"]
         ss_set("group_auth", {"group": group, "torneo": torneo})
+        # Guardar en URL para sobrevivir recargas / bloqueo de pantalla
+        st.query_params["code"] = code
         st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
