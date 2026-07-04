@@ -472,7 +472,8 @@ def leaderboard_ui():
             body += f"<tr><td style='padding:4px 8px;white-space:nowrap'><b>{r['name']}</b></td>"
             for h in hole_nums:
                 d = detail[pid].get(h)
-                if d:\n                    pts = d["points"]
+                if d:
+                    pts = d["points"]
                     strokes = d["strokes"]
                     bg = "#c8e6c9" if pts >= 3 else "#fff9c4" if pts == 2 else "#ffcdd2" if pts == 1 else "#ef9a9a"
                     body += f"<td style='text-align:center;background:{bg};padding:4px 6px'>{strokes}<br><span style='font-size:0.75rem;font-weight:bold'>{pts}p</span></td>"
