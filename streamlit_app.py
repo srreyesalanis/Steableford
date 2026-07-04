@@ -506,13 +506,16 @@ def leaderboard_ui():
     def _winner_card(label, pts_map, icon):
         if not pts_map:
             return
-        best_pid = max(pts_map, key=lambda k: pts_map[k])
+        best_pts = max(pts_map.values())
+        winners = [pid_to_name.get(p, "?") for p, v in pts_map.items() if v == best_pts]
+        names_str = " / ".join(winners)
+        tie_label = " 🤝 Empate" if len(winners) > 1 else ""
         st.markdown(
             f"<div style='background:#fff8e1;border-left:4px solid #ffc107;border-radius:8px;"
             f"padding:10px 14px;margin-bottom:8px'>"
-            f"<span style='font-size:0.8rem;color:#888'>{icon} {label}</span><br>"
-            f"<b style='font-size:1.1rem'>{pid_to_name.get(best_pid, '?')}</b>"
-            f"<span style='color:#f57c00;margin-left:8px;font-weight:bold'>{pts_map[best_pid]} pts</span>"
+            f"<span style='font-size:0.8rem;color:#888'>{icon} {label}{tie_label}</span><br>"
+            f"<b style='font-size:1.1rem'>{names_str}</b>"
+            f"<span style='color:#f57c00;margin-left:8px;font-weight:bold'>{best_pts} pts</span>"
             f"</div>",
             unsafe_allow_html=True
         )
