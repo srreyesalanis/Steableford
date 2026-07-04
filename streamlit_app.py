@@ -491,6 +491,45 @@ def leaderboard_ui():
         ranked.append({"pid": pid, "name": p["player_name"], "pts": pts_by_player.get(pid, 0), "hoyos": holes_by_player.get(pid, 0)})
     ranked.sort(key=lambda x: -x["pts"])
 
+    # ── Compute front/back per player ──────────────────────────────────────────
+    front_pts_map = defaultdict(int)
+    back_pts_map = defaultdict(int)
+    for pid_w, h_detail in detail.items():
+        for hnum, hd in h_detail.items():
+            if hnum <= 9:
+                front_pts_map[pid_w] += hd["points"]
+            else:
+                back_pts_map[pid_w] += hd["points"]
+
+    pid_to_name = {(p.get("player_id") or p.get("guest_id")): p["player_name"] for p in players}
+
+    def _winner_card(label, pts_map, icon):
+        if not pts_map:
+            return
+        best_pid = max(pts_map, key=lambda k: pts_map[k])
+        st.markdown(
+            f"<div style='background:#fff8e1;border-left:4px solid #ffc107;border-radius:8px;"
+            f"padding:10px 14px;margin-bottom:8px'>"
+            f"<span style='font-size:0.8rem;color:#888'>{icon} {label}</span><br>"
+            f"<b style='font-size:1.1rem'>{pid_to_name.get(best_pid, '?')}</b>"
+            f"<span style='color:#f57c00;margin-left:8px;font-weight:bold'>{pts_map[best_pid]} pts</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+    if ranked:
+        st.markdown("### 🏆 Ganadores")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            _winner_card("Front 9", front_pts_map, "🌅")
+        with col2:
+            _winner_card("Back 9", back_pts_map, "🌆")
+        with col3:
+            winner_total = {r["pid"]: r["pts"] for r in ranked}
+            _winner_card("Torneo", winner_total, "🎖️")
+        st.divider()
+
+    st.subheader("📋 Clasificación")
     for i, r in enumerate(ranked):
         medal = ["🥇", "🥈", "🥉"][i] if i < 3 else f"{i+1}."
         st.markdown(f"**{medal} {r['name']}** — {r['pts']} pts &nbsp;&nbsp; _(Hoyos: {r['hoyos']})_")
