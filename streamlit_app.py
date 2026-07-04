@@ -264,7 +264,7 @@ def create_tournament_ui():
 # ── Ver Códigos ───────────────────────────────────────────────────────────────
 
 def view_codes_ui():
-    st.header("🔑 Códigos de Grupo")
+    st.header("🔑 Grupos del Torneo")
     tournaments = db.get_tournaments()
     if not tournaments:
         st.info("No hay torneos creados.")
@@ -282,19 +282,27 @@ def view_codes_ui():
     for g in grupos:
         players = db.get_group_players(g["id"])
         names = ", ".join(p["player_name"] for p in players) or "Sin jugadores"
-        st.markdown(
-            f"<div style='background:#e8f5e9;border-radius:10px 10px 0 0;padding:12px 16px 12px 16px'>"
-            f"<b>{g['name']}</b><br>"
-            f"<span style='font-size:2rem;font-weight:bold;letter-spacing:6px'>{g['access_code']}</span><br>"
-            f"<span style='color:#555;font-size:0.85rem'>{names}</span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-        if st.button(f"🎯 Capturar scores — {g['name']}", key=f"cap_{g['id']}", use_container_width=True):
-            st.session_state["admin_capture_group"] = g
-            st.session_state["admin_capture_torneo"] = torneo
-            st.rerun()
-        st.markdown("<div style='margin-bottom:14px'></div>", unsafe_allow_html=True)
+        with st.expander(f"👥 {g['name']} — Codigo: {g['access_code']}", expanded=False):
+            st.markdown(f"**Participantes:** {names}")
+            st.markdown(
+                f"<div style='font-size:2.2rem;font-weight:bold;letter-spacing:8px;"
+                f"padding:10px 0;text-align:center'>{g['access_code']}</div>",
+                unsafe_allow_html=True
+            )
+            if st.button("🎯 Ingresar a este grupo", key=f"cap_{g['id']}", use_container_width=True):
+                st.session_state["admin_capture_group"] = g
+                st.session_state["admin_capture_torneo"] = torneo
+                st.rerun()
+            st.divider()
+            nuevo_nombre = st.text_input("Nombre del grupo", value=g["name"], key=f"rename_{g['id']}")
+            if st.button("Guardar nombre", key=f"save_name_{g['id']}", use_container_width=True):
+                db.rename_group(g["id"], nuevo_nombre)
+                st.success("Nombre actualizado")
+                st.rerun()
+            if st.button(f"🗑️ Borrar grupo", key=f"del_{g['id']}", use_container_width=True, type="secondary"):
+                db.delete_group(g["id"])
+                st.success("Grupo eliminado")
+                st.rerun()
 
 
 

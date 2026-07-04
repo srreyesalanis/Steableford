@@ -103,6 +103,16 @@ def delete_tournament(tournament_id: str):
     sb.table("tournaments").delete().eq("id", tournament_id).execute()
 
 
+def delete_group(group_id: str):
+    sb = get_authed_client()
+    sb.table("group_players").delete().eq("group_id", group_id).execute()
+    sb.table("groups").delete().eq("id", group_id).execute()
+
+def rename_group(group_id: str, name: str):
+    sb = get_authed_client()
+    sb.table("groups").update({"name": name}).eq("id", group_id).execute()
+
+
 # ── Groups ─────────────────────────────────────────────────────────────────────
 
 def create_group(tournament_id: str, name: str, access_code: str):
