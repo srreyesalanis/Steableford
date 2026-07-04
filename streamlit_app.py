@@ -444,11 +444,24 @@ def _capture_group_scores(torneo, group):
             )
 
             if gross is not None:
+                calc = sf.calc_hole(gross, par, course_hcp, hh)
                 scores_input[player["id"]] = {
                     "player": player,
                     "gross": gross,
-                    "calc": sf.calc_hole(gross, par, course_hcp, hh)
+                    "calc": calc
                 }
+                pts = calc["points"]
+                net = calc["net"]
+                pts_color = PTS_COLORS.get(pts, "#ef9a9a")
+                st.markdown(
+                    f"<div style='display:flex;justify-content:space-between;padding:4px 10px 6px 10px;"
+                    f"background:{color};border-radius:0 0 10px 10px;margin-bottom:14px'>"
+                    f"<span style='font-size:0.85rem;color:#555'>Net: <b>{net}</b></span>"
+                    f"<span style='background:{pts_color};border-radius:8px;padding:1px 10px;"
+                    f"font-weight:bold;font-size:0.9rem'>{pts} pts</span>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
             else:
                 scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
 
