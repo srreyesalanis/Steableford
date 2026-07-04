@@ -7,7 +7,9 @@ import streamlit as st
 
 @st.cache_resource
 def get_client():
-    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+    # Usa service role key si está disponible (bypasa RLS), si no usa anon key
+    key = st.secrets.get("SUPABASE_SERVICE_KEY") or st.secrets["SUPABASE_KEY"]
+    return create_client(st.secrets["SUPABASE_URL"], key)
 
 
 def sign_in(email: str, password: str):
