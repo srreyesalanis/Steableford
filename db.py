@@ -225,7 +225,7 @@ def get_scores(tournament_id: str):
     sb = get_client()
     return (
         sb.table("tournament_scores")
-        .select("player_id, guest_id, player_name, hole_number, strokes, net_strokes, group_id")
+        .select("player_id, guest_id, hole_number, strokes, net_strokes, group_id")
         .eq("tournament_id", tournament_id)
         .execute()
     ).data or []
