@@ -83,7 +83,7 @@ def create_tournament(name: str, date: str, tee_id: str, access_code: str):
 
 def get_tournaments():
     sb = get_authed_client()
-    return (sb.table("tournaments").select("id, name, date, access_code, tee_id").order("date", desc=True).execute()).data or []
+    return (sb.table("tournaments").select("id, name, date, access_code, tee_id, format").neq("format", "bola_baja_parejas").order("date", desc=True).execute()).data or []
 
 
 def get_tournament(tournament_id: str):
