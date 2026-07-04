@@ -302,8 +302,11 @@ def capture_scores_ui():
 
     st.divider()
 
+    # Colores por jugador
+    COLORS = ["#e3f2fd", "#f3e5f5", "#e8f5e9", "#fff8e1", "#fce4ec", "#e0f7fa", "#f1f8e9", "#ede7f6"]
+
     scores_input = {}
-    for player in players:
+    for idx, player in enumerate(players):
         course_hcp = player["course_handicap"]
         received = sf.strokes_received(course_hcp, hh)
         existing = db.get_player_scores(
@@ -314,16 +317,31 @@ def capture_scores_ui():
         saved = existing.get(hnum, {})
         default_strokes = saved.get("strokes", par)
 
-        # Card por jugador
+        color = COLORS[idx % len(COLORS)]
         prev_calc = sf.calc_hole(default_strokes, par, course_hcp, hh)
         ventaja = f" | Ventaja: {received}" if received > 0 else ""
+
+        st.markdown(
+            f"<div style='background:{color};border-radius:10px;padding:10px 14px;margin-bottom:4px'>"
+            f"<b>{player['player_name']}</b> "
+            f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
         gross = st.number_input(
-            f"{player['player_name']} — HCP {course_hcp}{ventaja} | Net {prev_calc['net']} · Pts {prev_calc['points']}",
+            f"Golpes",
             min_value=1, max_value=15,
             value=default_strokes, key=f"gross_{player['id']}",
+            label_visibility="collapsed"
         )
-        st.divider()
-        scores_input[player["id"]] = {"player": player, "gross": gross, "calc": sf.calc_hole(gross, par, course_hcp, hh)}
+        calc = sf.calc_hole(gross, par, course_hcp, hh)
+        st.markdown(
+            f"<div style='background:{color};border-radius:0 0 10px 10px;padding:4px 14px 10px 14px;margin-top:-8px;margin-bottom:10px'>"
+            f"Net: <b>{calc['net']}</b> &nbsp;&nbsp; Pts: <b>{calc['points']}</b>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+        scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
 
     st.divider()
     if st.button(f"💾 Guardar Hoyo {hnum}", type="primary"):
