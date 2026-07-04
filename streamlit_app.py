@@ -292,18 +292,16 @@ def capture_scores_ui():
         st.warning("No hay jugadores en este torneo.")
         return
 
-    # Marcar hoyos que ya tienen scores guardados
-    saved_holes = set()
-    scores_all = db.get_scores(torneo["id"])
-    for s in scores_all:
-        saved_holes.add(s["hole_number"])
-
     # Selector de hoyo
-    hole_options = {
-        f"{'✅ ' if h['hole_number'] in saved_holes else ''}Hoyo {h['hole_number']} — Par {h['par']} | HCP {h['handicap']}": h
+    hole_list = [
+        f"{('✅ ' if h['hole_number'] in saved_holes else '')}Hoyo {h['hole_number']} — Par {h['par']} | HCP {h['handicap']}"
         for h in holes
-    }
-    hole_label = st.selectbox("Hoyo", list(hole_options.keys()), key="score_hole")
+    ]
+    hole_options = {label: hole for label, hole in zip(hole_list, holes)}
+
+    # Índice activo (avance automático)
+    default_idx = ss_get("score_hole_idx", 0)
+    hole_label = st.selectbox("Hoyo", hole_list, index=default_idx, key="score_hole")
     hole = hole_options[hole_label]
     hnum = hole["hole_number"]
     par = hole["par"]
@@ -376,15 +374,13 @@ def capture_scores_ui():
                 guest_id=p.get("guest_id"),
             )
         st.session_state.pop(f"scores_{torneo['id']}_{hnum}", None)
-        # Avanzar al siguiente hoyo o terminar si es el 18
         if hnum >= len(holes):
+            ss_set("score_hole_idx", len(holes) - 1)
             st.success(f"🏁 ¡Ronda completa! Todos los hoyos capturados.")
             st.balloons()
         else:
-            next_hole = holes[hnum]  # hnum es 1-based, índice hnum = siguiente hoyo
-            next_label = f"{'✅ ' if next_hole['hole_number'] in saved_holes else ''}Hoyo {next_hole['hole_number']} — Par {next_hole['par']} | HCP {next_hole['handicap']}"
-            st.success(f"✅ Hoyo {hnum} guardado — siguiente: Hoyo {next_hole['hole_number']}")
-            ss_set("score_hole", next_label)
+            ss_set("score_hole_idx", hnum)  # hnum es 1-based, índice del siguiente = hnum
+            st.success(f"✅ Hoyo {hnum} guardado — siguiente: Hoyo {hnum + 1}")
             st.rerun()
 
 
