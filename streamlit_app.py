@@ -11,6 +11,14 @@ import stableford as sf
 
 st.set_page_config(page_title="⛳ Stableford", layout="centered")
 
+st.markdown("""
+<style>
+h1 { font-size: 1.5rem !important; }
+h2 { font-size: 1.2rem !important; }
+h3 { font-size: 1rem !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SESSION STATE HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
