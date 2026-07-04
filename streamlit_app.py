@@ -98,15 +98,9 @@ def admin_login():
 def admin_panel():
     st.title("⛳ Admin — Stableford")
 
-    # Si hay un grupo seleccionado para capturar, mostrar captura con boton de regreso
+    # Si hay un grupo seleccionado para capturar, el router principal lo maneja
+    # (no mostrar boton de volver aqui)
     if st.session_state.get("admin_capture_group"):
-        g = st.session_state["admin_capture_group"]
-        t = st.session_state["admin_capture_torneo"]
-        if st.button("← Volver al admin"):
-            st.session_state.pop("admin_capture_group", None)
-            st.session_state.pop("admin_capture_torneo", None)
-            st.rerun()
-        _capture_group_scores(t, g)
         return
 
     tab_create, tab_codes, tab_delete = st.tabs(["➕ Crear Torneo", "🔑 Ver Códigos", "🗑️ Borrar Torneo"])
@@ -865,7 +859,19 @@ def group_leader_ui():
 
 def main():
     st.sidebar.title("⛳ Stableford")
-    vista = st.sidebar.radio("Vista", ["🏆 Leaderboard", "🎯 Capturar (Grupo)", "🔐 Admin"])
+
+    # Si admin seleccionó un grupo para capturar, sidebar apunta a Capturar
+    admin_cap_group = st.session_state.get("admin_capture_group")
+    admin_cap_torneo = st.session_state.get("admin_capture_torneo")
+    default_idx = 1 if admin_cap_group else 0
+
+    vista = st.sidebar.radio("Vista", ["🏆 Leaderboard", "🎯 Capturar (Grupo)", "🔐 Admin"], index=default_idx)
+
+    # Si el usuario cambia de pantalla manualmente, limpiar captura admin
+    if vista != "🎯 Capturar (Grupo)" and admin_cap_group:
+        st.session_state.pop("admin_capture_group", None)
+        st.session_state.pop("admin_capture_torneo", None)
+        admin_cap_group = None
 
     if vista == "🔐 Admin":
         if not ss_get("admin_logged_in"):
@@ -880,7 +886,10 @@ def main():
                 st.rerun()
             admin_panel()
     elif vista == "🎯 Capturar (Grupo)":
-        group_leader_ui()
+        if admin_cap_group and admin_cap_torneo:
+            _capture_group_scores(admin_cap_torneo, admin_cap_group)
+        else:
+            group_leader_ui()
     else:
         leaderboard_ui()
 
