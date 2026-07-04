@@ -113,7 +113,7 @@ def create_tournament_ui():
     tee_label = st.selectbox("Tee", list(tee_map.keys()))
     selected_tee = tee_map[tee_label]
 
-    torneo_nombre = st.text_input("Nombre del torneo", value="Stableford")
+    torneo_nombre = st.text_input("Nombre del torneo", value=f"Stableford {date.today()}")
     torneo_fecha = st.date_input("Fecha", value=date.today())
 
     st.subheader("Jugadores")
@@ -219,7 +219,7 @@ def delete_tournament_ui():
         st.info("No hay torneos creados.")
         return
 
-    t_map = {f"{t['name']} ({t['date']})": t for t in tournaments}
+    t_map = {t['name']: t for t in tournaments}
     t_label = st.selectbox("Selecciona el torneo a borrar", list(t_map.keys()), key="delete_tournament")
     torneo = t_map[t_label]
 
@@ -243,7 +243,7 @@ def capture_scores_ui():
         st.info("No hay torneos creados.")
         return
 
-    t_map = {f"{t['name']} ({t['date']})": t for t in tournaments}
+    t_map = {t['name']: t for t in tournaments}
     t_label = st.selectbox("Torneo", list(t_map.keys()), key="score_tournament")
     torneo = t_map[t_label]
 
@@ -340,7 +340,7 @@ def leaderboard_ui():
         st.info("No hay torneos disponibles.")
         return
 
-    t_map = {f"{t['name']} ({t['date']})": t for t in tournaments}
+    t_map = {t['name']: t for t in tournaments}
     t_label = st.selectbox("Torneo", list(t_map.keys()))
     torneo = t_map[t_label]
 
