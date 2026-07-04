@@ -183,17 +183,8 @@ def create_tournament_ui():
 
         for r in valid:
             d = r["data"]
-            # Jugadores registrados con hándicap en DB: aplicar fórmula
-            # Jugadores con hándicap manual o guests: usar el valor directo
-            if d.get("player_id") and not d.get("manual_hcp"):
-                ch = sf.course_handicap(
-                    d["handicap_index"],
-                    selected_tee["slope"],
-                    float(selected_tee["rating"]),
-                    selected_tee["par"],
-                )
-            else:
-                ch = int(round(d["handicap_index"]))
+            # Todos los jugadores usan el handicap index directo como course handicap
+            ch = int(round(d["handicap_index"]))
             guest_id = None
             player_id = d.get("player_id")
 
