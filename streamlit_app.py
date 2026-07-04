@@ -67,7 +67,8 @@ def admin_login():
                 st.rerun()
             else:
                 st.error("Credenciales inválidas")
-        except Exception as e:\n            st.error(f"Error: {e}")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -380,3 +381,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
