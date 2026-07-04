@@ -224,14 +224,25 @@ def capture_scores_ui():
     torneo = t_map[t_label]
 
     # Tee info
-    tee_id = torneo["tee_id"]
-    # Get tee details
-    sb = db.get_client()
-    tee_res = sb.table("tees").select("*").eq("id", tee_id).single().execute()
-    tee = tee_res.data if tee_res.data else {}
+    tee_id = torneo.get("tee_id")
+    if not tee_id:
+        st.warning("Este torneo no tiene tee asignado.")
+        return
 
-    course_res = sb.table("courses").select("id, name").eq("id", tee.get("course_id", "")).single().execute()
-    course = course_res.data if course_res.data else {}
+    sb = db.get_client()
+    tee_res = sb.table("tees").select("*").eq("id", tee_id).execute()
+    if not tee_res.data:
+        st.warning("No se encontró el tee del torneo.")
+        return
+    tee = tee_res.data[0]
+
+    course_id = tee.get("course_id")
+    if not course_id:
+        st.warning("El tee no tiene cancha asignada.")
+        return
+
+    course_res = sb.table("courses").select("id, name").eq("id", course_id).execute()
+    course = course_res.data[0] if course_res.data else {}
 
     holes = db.get_holes(course.get("id", ""))
     if not holes:
@@ -321,10 +332,16 @@ def leaderboard_ui():
     hcp_map = {p["player_id"] or p["guest_id"]: p["course_handicap"] for p in players}
 
     sb = db.get_client()
-    tee_res = sb.table("tees").select("*").eq("id", torneo["tee_id"]).single().execute()
-    tee = tee_res.data or {}
-    course_res = sb.table("courses").select("id").eq("id", tee.get("course_id", "")).single().execute()
-    course = course_res.data or {}
+    tee_id = torneo.get("tee_id")
+    tee = {}
+    course = {}
+    if tee_id:
+        tee_res = sb.table("tees").select("*").eq("id", tee_id).execute()
+        tee = tee_res.data[0] if tee_res.data else {}
+    course_id = tee.get("course_id")
+    if course_id:
+        course_res = sb.table("courses").select("id").eq("id", course_id).execute()
+        course = course_res.data[0] if course_res.data else {}
     holes = {h["hole_number"]: h for h in db.get_holes(course.get("id", ""))}
 
     for s in scores_raw:
