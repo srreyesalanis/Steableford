@@ -611,7 +611,20 @@ def leaderboard_ui():
         return
 
     t_map = {t['name']: t for t in tournaments}
-    t_label = st.selectbox("Torneo", list(t_map.keys()))
+
+    # Persistir seleccion de torneo via query param
+    saved_t = st.query_params.get("torneo", None)
+    t_names = ["— Seleccionar —"] + list(t_map.keys())
+    default_idx = 0
+    if saved_t and saved_t in t_map:
+        default_idx = t_names.index(saved_t)
+
+    t_label = st.selectbox("Torneo", t_names, index=default_idx)
+    if t_label == "— Seleccionar —":
+        st.info("Selecciona un torneo para ver el leaderboard.")
+        st.query_params.pop("torneo", None)
+        return
+    st.query_params["torneo"] = t_label
     torneo = t_map[t_label]
 
     players = db.get_all_tournament_players(torneo["id"])
