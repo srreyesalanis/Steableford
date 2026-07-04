@@ -13,9 +13,22 @@ st.set_page_config(page_title="⛳ Stableford", layout="centered")
 
 st.markdown("""
 <style>
-h1 { font-size: 1.5rem !important; }
-h2 { font-size: 1.2rem !important; }
+h1 { font-size: 1.4rem !important; }
+h2 { font-size: 1.1rem !important; }
 h3 { font-size: 1rem !important; }
+/* Inputs más grandes para touch */
+div[data-testid="stNumberInput"] input {
+    font-size: 1.2rem !important;
+    height: 2.5rem !important;
+}
+/* Botón principal más grande */
+div[data-testid="stButton"] > button[kind="primary"] {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+}
+/* Sidebar más compacta */
+section[data-testid="stSidebar"] { min-width: 200px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -289,13 +302,6 @@ def capture_scores_ui():
 
     st.divider()
 
-    # Header de columnas
-    col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
-    col1.markdown("**Jugador**")
-    col2.markdown("**Golpes**")
-    col3.markdown("**Net**")
-    col4.markdown("**Pts**")
-
     scores_input = {}
     for player in players:
         course_hcp = player["course_handicap"]
@@ -308,16 +314,22 @@ def capture_scores_ui():
         saved = existing.get(hnum, {})
         default_strokes = saved.get("strokes", par)
 
-        col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
-        col1.markdown(f"{player['player_name']} *(+{received})*")
-        gross = col2.number_input(
+        # Card por jugador — 2 filas: nombre | golpes + net + pts
+        st.markdown(
+            f"<div style='background:#f8f9fa;border-radius:8px;padding:8px 12px;margin-bottom:6px'>"
+            f"<b>{player['player_name']}</b> "
+            f"<span style='color:#666;font-size:0.85rem'>HCP {course_hcp} · +{received} golpe{'s' if received != 1 else ''}</span>",
+            unsafe_allow_html=True
+        )
+        c1, c2, c3 = st.columns([2, 1, 1])
+        gross = c1.number_input(
             "Golpes", min_value=1, max_value=15,
             value=default_strokes, key=f"gross_{player['id']}",
-            label_visibility="collapsed"
         )
         calc = sf.calc_hole(gross, par, course_hcp, hh)
-        col3.markdown(f"**{calc['net']}**")
-        col4.markdown(f"**{calc['points']}**")
+        c2.metric("Net", calc["net"])
+        c3.metric("Pts", calc["points"])
+        st.markdown("</div>", unsafe_allow_html=True)
         scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
 
     st.divider()
