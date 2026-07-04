@@ -12,7 +12,7 @@ def get_client():
 
 def get_authed_client():
     """Devuelve el cliente con el token del usuario autenticado si existe."""
-    sb = get_authed_client()
+    sb = get_client()
     access_token = st.session_state.get("access_token")
     refresh_token = st.session_state.get("refresh_token")
     if access_token and refresh_token:
@@ -22,19 +22,19 @@ def get_authed_client():
 
 def sign_in(email: str, password: str):
     """Autentica con Supabase Auth. Regresa el objeto session o lanza excepción."""
-    sb = get_authed_client()
+    sb = get_client()
     res = sb.auth.sign_in_with_password({"email": email, "password": password})
     return res.session
 
 
 def sign_out():
-    sb = get_authed_client()
+    sb = get_client()
     sb.auth.sign_out()
 
 
 def refresh_session(refresh_token: str):
     """Renueva el access token usando el refresh token guardado."""
-    sb = get_authed_client()
+    sb = get_client()
     res = sb.auth.refresh_session(refresh_token)
     return res.session
 
