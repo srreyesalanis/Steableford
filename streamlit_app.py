@@ -289,7 +289,7 @@ def view_codes_ui():
         players = db.get_group_players(g["id"])
         names = ", ".join(p["player_name"] for p in players) or "Sin jugadores"
         st.markdown(
-            f"<div style='background:#e8f5e9;border-radius:10px;padding:12px 16px;margin-bottom:10px'>"
+            f"<div style='background:#e8f5e9;border-radius:10px 10px 0 0;padding:12px 16px 12px 16px'>"
             f"<b>{g['name']}</b><br>"
             f"<span style='font-size:2rem;font-weight:bold;letter-spacing:6px'>{g['access_code']}</span><br>"
             f"<span style='color:#555;font-size:0.85rem'>{names}</span>"
@@ -300,6 +300,7 @@ def view_codes_ui():
             st.session_state["admin_capture_group"] = g
             st.session_state["admin_capture_torneo"] = torneo
             st.rerun()
+        st.markdown("<div style='margin-bottom:14px'></div>", unsafe_allow_html=True)
 
 
 
