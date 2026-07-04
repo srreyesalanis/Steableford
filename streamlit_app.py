@@ -229,7 +229,7 @@ def capture_scores_ui():
         st.warning("Este torneo no tiene tee asignado.")
         return
 
-    sb = db.get_client()
+    sb = db.get_authed_client()
     tee_res = sb.table("tees").select("*").eq("id", tee_id).execute()
     if not tee_res.data:
         st.warning("No se encontró el tee del torneo.")
@@ -331,7 +331,7 @@ def leaderboard_ui():
     # Necesitamos course_hcp por jugador
     hcp_map = {p["player_id"] or p["guest_id"]: p["course_handicap"] for p in players}
 
-    sb = db.get_client()
+    sb = db.get_authed_client()
     tee_id = torneo.get("tee_id")
     tee = {}
     course = {}

@@ -7,26 +7,34 @@ import streamlit as st
 
 @st.cache_resource
 def get_client():
-    # Usa service role key si está disponible (bypasa RLS), si no usa anon key
-    key = st.secrets.get("SUPABASE_SERVICE_KEY") or st.secrets["SUPABASE_KEY"]
-    return create_client(st.secrets["SUPABASE_URL"], key)
+    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+
+
+def get_authed_client():
+    """Devuelve el cliente con el token del usuario autenticado si existe."""
+    sb = get_authed_client()
+    access_token = st.session_state.get("access_token")
+    refresh_token = st.session_state.get("refresh_token")
+    if access_token and refresh_token:
+        sb.auth.set_session(access_token, refresh_token)
+    return sb
 
 
 def sign_in(email: str, password: str):
     """Autentica con Supabase Auth. Regresa el objeto session o lanza excepción."""
-    sb = get_client()
+    sb = get_authed_client()
     res = sb.auth.sign_in_with_password({"email": email, "password": password})
     return res.session
 
 
 def sign_out():
-    sb = get_client()
+    sb = get_authed_client()
     sb.auth.sign_out()
 
 
 def refresh_session(refresh_token: str):
     """Renueva el access token usando el refresh token guardado."""
-    sb = get_client()
+    sb = get_authed_client()
     res = sb.auth.refresh_session(refresh_token)
     return res.session
 
@@ -34,7 +42,7 @@ def refresh_session(refresh_token: str):
 # ── Players ────────────────────────────────────────────────────────────────────
 
 def get_players():
-    sb = get_client()
+    sb = get_authed_client()
     res = sb.table("players").select("id, name, current_handicap").order("name").execute()
     return res.data or []
 
@@ -42,14 +50,14 @@ def get_players():
 # ── Courses / Tees / Holes ─────────────────────────────────────────────────────
 
 def get_courses():
-    sb = get_client()
+    sb = get_authed_client()
     return (sb.table("courses").select("id, name").order("name").execute()).data or []
 
 
 def get_tees(course_id: str):
     if not course_id:
         return []
-    sb = get_client()
+    sb = get_authed_client()
     return (
         sb.table("tees")
         .select("id, name, color, rating, slope, par")
@@ -61,7 +69,7 @@ def get_tees(course_id: str):
 def get_holes(course_id: str):
     if not course_id:
         return []
-    sb = get_client()
+    sb = get_authed_client()
     return (
         sb.table("holes")
         .select("id, hole_number, par, handicap")
@@ -74,7 +82,7 @@ def get_holes(course_id: str):
 # ── Tournaments ────────────────────────────────────────────────────────────────
 
 def create_tournament(name: str, date: str, tee_id: str, access_code: str):
-    sb = get_client()
+    sb = get_authed_client()
     res = (
         sb.table("tournaments")
         .insert({"name": name, "date": date, "tee_id": tee_id,
@@ -85,7 +93,7 @@ def create_tournament(name: str, date: str, tee_id: str, access_code: str):
 
 
 def get_tournaments():
-    sb = get_client()
+    sb = get_authed_client()
     return (
         sb.table("tournaments")
         .select("id, name, date, access_code, tee_id")
@@ -95,7 +103,7 @@ def get_tournaments():
 
 
 def get_tournament(tournament_id: str):
-    sb = get_client()
+    sb = get_authed_client()
     res = (
         sb.table("tournaments")
         .select("id, name, date, access_code, tee_id")
@@ -109,7 +117,7 @@ def get_tournament(tournament_id: str):
 # ── Groups ─────────────────────────────────────────────────────────────────────
 
 def create_group(tournament_id: str, name: str, access_code: str):
-    sb = get_client()
+    sb = get_authed_client()
     res = (
         sb.table("groups")
         .insert({"tournament_id": tournament_id, "name": name, "access_code": access_code})
@@ -119,7 +127,7 @@ def create_group(tournament_id: str, name: str, access_code: str):
 
 
 def get_groups(tournament_id: str):
-    sb = get_client()
+    sb = get_authed_client()
     return (
         sb.table("groups")
         .select("id, name, access_code")
@@ -132,7 +140,7 @@ def get_groups(tournament_id: str):
 
 def add_group_player(group_id: str, player_name: str, course_handicap: int,
                      player_id: str = None, guest_id: str = None):
-    sb = get_client()
+    sb = get_authed_client()
     row = {
         "group_id": group_id,
         "player_name": player_name,
@@ -149,7 +157,7 @@ def add_group_player(group_id: str, player_name: str, course_handicap: int,
 
 
 def get_group_players(group_id: str):
-    sb = get_client()
+    sb = get_authed_client()
     return (
         sb.table("group_players")
         .select("id, player_id, guest_id, player_name, course_handicap")
@@ -160,7 +168,7 @@ def get_group_players(group_id: str):
 
 def get_all_tournament_players(tournament_id: str):
     """Devuelve todos los jugadores de todos los grupos de un torneo."""
-    sb = get_client()
+    sb = get_authed_client()
     groups = get_groups(tournament_id)
     players = []
     for g in groups:
@@ -175,7 +183,7 @@ def get_all_tournament_players(tournament_id: str):
 # ── Guests ─────────────────────────────────────────────────────────────────────
 
 def create_guest(name: str, handicap_index: float, tournament_id: str, player_id: str = None):
-    sb = get_client()
+    sb = get_authed_client()
     from datetime import date
     row = {
         "name": name,
@@ -194,7 +202,7 @@ def create_guest(name: str, handicap_index: float, tournament_id: str, player_id
 def upsert_score(tournament_id: str, hole_number: int, strokes: int,
                  net_strokes: int, group_id: str,
                  player_id: str = None, guest_id: str = None, pair_name: str = ""):
-    sb = get_client()
+    sb = get_authed_client()
     # Buscar si ya existe
     q = (
         sb.table("tournament_scores")
@@ -228,7 +236,7 @@ def upsert_score(tournament_id: str, hole_number: int, strokes: int,
 
 
 def get_scores(tournament_id: str):
-    sb = get_client()
+    sb = get_authed_client()
     return (
         sb.table("tournament_scores")
         .select("player_id, guest_id, hole_number, strokes, net_strokes, group_id")
@@ -238,7 +246,7 @@ def get_scores(tournament_id: str):
 
 
 def get_player_scores(tournament_id: str, player_id: str = None, guest_id: str = None):
-    sb = get_client()
+    sb = get_authed_client()
     q = (
         sb.table("tournament_scores")
         .select("hole_number, strokes, net_strokes")
