@@ -314,22 +314,21 @@ def capture_scores_ui():
         saved = existing.get(hnum, {})
         default_strokes = saved.get("strokes", par)
 
-        # Card por jugador — 2 filas: nombre | golpes + net + pts
-        st.markdown(
-            f"<div style='background:#f8f9fa;border-radius:8px;padding:8px 12px;margin-bottom:6px'>"
-            f"<b>{player['player_name']}</b> "
-            f"<span style='color:#666;font-size:0.85rem'>HCP {course_hcp} · +{received} golpe{'s' if received != 1 else ''}</span>",
-            unsafe_allow_html=True
-        )
-        c1, c2, c3 = st.columns([2, 1, 1])
-        gross = c1.number_input(
-            "Golpes", min_value=1, max_value=15,
+        # Card por jugador — todo en 2 filas compactas
+        gross = st.number_input(
+            f"{player['player_name']} — HCP {course_hcp} (+{received})",
+            min_value=1, max_value=15,
             value=default_strokes, key=f"gross_{player['id']}",
         )
         calc = sf.calc_hole(gross, par, course_hcp, hh)
-        c2.metric("Net", calc["net"])
-        c3.metric("Pts", calc["points"])
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='display:flex;gap:16px;margin:-8px 0 12px 0;font-size:0.9rem;color:#444'>"
+            f"<span>Net: <b>{calc['net']}</b></span>"
+            f"<span>Pts: <b style='color:{'#2e7d32' if calc['points']>=2 else '#c62828'}'>{calc['points']}</b></span>"
+            f"<span style='color:#888'>vs par: {calc['net']-par:+d}</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
         scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
 
     st.divider()
