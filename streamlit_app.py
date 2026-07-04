@@ -322,17 +322,18 @@ def capture_scores_ui():
             f"</div>",
             unsafe_allow_html=True
         )
-        c1, c2 = st.columns([2, 3])
+        c1, c2 = st.columns([3, 2])
         gross = c1.number_input(
             "Golpes", min_value=1, max_value=15,
             value=default_strokes, key=f"gross_{player['id']}",
             label_visibility="collapsed"
         )
         calc = sf.calc_hole(gross, par, course_hcp, hh)
+        pts_color = "#2e7d32" if calc['points'] >= 2 else "#c62828"
         c2.markdown(
-            f"<div style='padding-top:6px;font-size:0.95rem'>"
-            f"Net: <b>{calc['net']}</b> &nbsp;&nbsp; "
-            f"Pts: <b style='color:{'#2e7d32' if calc['points']>=2 else '#c62828'}'>{calc['points']}</b>"
+            f"<div style='padding-top:10px;font-size:1rem;line-height:1.2'>"
+            f"Net&nbsp;<b>{calc['net']}</b>&nbsp;&nbsp;"
+            f"Pts&nbsp;<b style='color:{pts_color}'>{calc['points']}</b>"
             f"</div>",
             unsafe_allow_html=True
         )
