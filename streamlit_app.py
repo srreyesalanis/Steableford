@@ -322,7 +322,7 @@ def capture_scores_ui(admin=False, group=None, torneo=None):
             st.info("No hay torneos creados.")
             return
         t_map = {t['name']: t for t in tournaments}
-        t_label = st.selectbox("Torneo", list(t_map.keys()), key="score_tournament")
+        t_label = st.selectbox("Torneo", list(t_map.keys()))
         torneo = t_map[t_label]
 
         grupos = db.get_groups(torneo["id"])
@@ -330,7 +330,7 @@ def capture_scores_ui(admin=False, group=None, torneo=None):
             st.warning("Este torneo no tiene grupos.")
             return
         g_map = {g["name"]: g for g in grupos}
-        g_label = st.selectbox("Grupo", list(g_map.keys()), key="score_group")
+        g_label = st.selectbox("Grupo", list(g_map.keys()))
         group = g_map[g_label]
 
     _capture_group_scores(torneo, group)
@@ -383,7 +383,7 @@ def _capture_group_scores(torneo, group):
     hole_options = {label: hole for label, hole in zip(hole_list, holes)}
 
     default_idx = ss_get(f"hole_idx_{group['id']}", 0)
-    hole_label = st.selectbox("Hoyo", hole_list, index=default_idx, key=f"hole_{group['id']}")
+    hole_label = st.selectbox("Hoyo", hole_list, index=default_idx)
     hole = hole_options[hole_label]
     hnum = hole["hole_number"]
     par = hole["par"]
