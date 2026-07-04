@@ -10,14 +10,14 @@ def course_handicap(handicap_index: float, slope: int, rating: float, par: int) 
 
 def strokes_received(course_hcp: int, hole_handicap: int) -> int:
     """
-    Cuántos golpes de ventaja recibe el jugador en este hoyo.
-    - Si course_hcp >= hole_handicap → al menos 1 golpe
-    - Cada 18 puntos extra = 1 golpe adicional
+    El jugador recibe golpe en un hoyo si hole_handicap <= course_hcp.
+    Ejemplo: HCP 10, hoyo HCP 11 → 0 golpes (11 > 10)
+             HCP 10, hoyo HCP 9  → 1 golpe  (9 <= 10)
+             HCP 20, hoyo HCP 9  → 2 golpes (vuelta extra)
     """
-    if course_hcp <= 0:
+    if course_hcp <= 0 or hole_handicap > course_hcp:
         return 0
-    extra = max(0, course_hcp - hole_handicap)
-    return 1 + (extra // 18)
+    return 1 + (course_hcp - hole_handicap) // 18
 
 
 def net_strokes(gross: int, received: int) -> int:
