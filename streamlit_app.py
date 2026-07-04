@@ -330,7 +330,8 @@ def capture_scores_ui():
         pts_color = "#2e7d32" if calc['points'] >= 2 else "#c62828"
         c2.markdown(
             f"Net&nbsp;<b>{calc['net']}</b>&nbsp;&nbsp;"
-            f"Pts&nbsp;<b style='font-size:1.1rem;color:{pts_color}'>{calc['points']}</b>"
+            f"Pts&nbsp;<b style='font-size:1.1rem;color:{pts_color}'>{calc['points']}</b>",
+            unsafe_allow_html=True
         )
         st.divider()
         scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
