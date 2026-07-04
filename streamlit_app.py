@@ -433,7 +433,7 @@ def _capture_group_scores(torneo, group):
             min_value=1, max_value=20,
             value=current_gross,
             step=1,
-            key=gross_key,
+            placeholder="—",
             label_visibility="collapsed",
         )
         st.markdown(
