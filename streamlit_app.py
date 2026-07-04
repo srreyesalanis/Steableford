@@ -97,11 +97,9 @@ def admin_login():
 
 def admin_panel():
     st.title("⛳ Admin — Stableford")
-    tab_create, tab_scores, tab_codes, tab_delete = st.tabs(["➕ Crear Torneo", "🎯 Capturar Scores", "🔑 Ver Códigos", "🗑️ Borrar Torneo"])
+    tab_create, tab_codes, tab_delete = st.tabs(["➕ Crear Torneo", "🔑 Ver Códigos", "🗑️ Borrar Torneo"])
     with tab_create:
         create_tournament_ui()
-    with tab_scores:
-        capture_scores_ui(admin=True)
     with tab_codes:
         view_codes_ui()
     with tab_delete:
