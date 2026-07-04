@@ -53,7 +53,10 @@ def random_code(n=6):
 def _try_restore_session():
     if ss_get("admin_logged_in"):
         return
+    # Intentar desde session_state primero, luego desde query params
     rt = ss_get("refresh_token")
+    if not rt:
+        rt = st.query_params.get("_rt", None)
     if not rt:
         return
     try:
@@ -62,8 +65,9 @@ def _try_restore_session():
             ss_set("admin_logged_in", True)
             ss_set("access_token", session.access_token)
             ss_set("refresh_token", session.refresh_token)
+            st.query_params["_rt"] = session.refresh_token
     except Exception:
-        pass
+        st.query_params.pop("_rt", None)
 
 def admin_login():
     _try_restore_session()
@@ -80,6 +84,7 @@ def admin_login():
                 ss_set("admin_logged_in", True)
                 ss_set("access_token", session.access_token)
                 ss_set("refresh_token", session.refresh_token)
+                st.query_params["_rt"] = session.refresh_token
                 st.rerun()
             else:
                 st.error("Credenciales inválidas")
@@ -667,6 +672,7 @@ def main():
                 ss_set("admin_logged_in", False)
                 ss_set("access_token", None)
                 ss_set("refresh_token", None)
+                st.query_params.pop("_rt", None)
                 st.rerun()
             admin_panel()
     elif vista == "🎯 Capturar (Grupo)":
