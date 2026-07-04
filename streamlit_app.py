@@ -322,23 +322,21 @@ def capture_scores_ui():
         ventaja = f" | Ventaja: {received}" if received > 0 else ""
 
         st.markdown(
-            f"<div style='background:{color};border-radius:10px;padding:10px 14px;margin-bottom:4px'>"
+            f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
             f"<b>{player['player_name']}</b> "
             f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
+            f"&nbsp;&nbsp;<span style='font-size:0.85rem'>Net: <b>{prev_calc['net']}</b> &nbsp; Pts: <b>{prev_calc['points']}</b></span>"
             f"</div>",
             unsafe_allow_html=True
         )
         gross = st.number_input(
-            f"Golpes",
-            min_value=1, max_value=15,
+            "Golpes", min_value=1, max_value=15,
             value=default_strokes, key=f"gross_{player['id']}",
             label_visibility="collapsed"
         )
         calc = sf.calc_hole(gross, par, course_hcp, hh)
         st.markdown(
-            f"<div style='background:{color};border-radius:0 0 10px 10px;padding:4px 14px 10px 14px;margin-top:-8px;margin-bottom:10px'>"
-            f"Net: <b>{calc['net']}</b> &nbsp;&nbsp; Pts: <b>{calc['points']}</b>"
-            f"</div>",
+            f"<div style='background:{color};border-radius:0 0 10px 10px;height:6px;margin-top:-8px;margin-bottom:10px'></div>",
             unsafe_allow_html=True
         )
         scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
