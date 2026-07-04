@@ -610,7 +610,7 @@ def group_leader_ui():
         _capture_group_scores(torneo, group)
         return
 
-    st.markdown("Ingresa el código de 6 dígitos de tu grupo:")
+    st.markdown("Ingresa el código de tu grupo:")
     code = st.text_input("Código de grupo", max_chars=6, placeholder="123456")
 
     if st.button("Entrar", type="primary"):
