@@ -529,10 +529,6 @@ def leaderboard_ui():
             _winner_card("Torneo", winner_total, "🎖️")
         st.divider()
 
-    st.subheader("📋 Clasificación")
-    for i, r in enumerate(ranked):
-        medal = ["🥇", "🥈", "🥉"][i] if i < 3 else f"{i+1}."
-        st.markdown(f"**{medal} {r['name']}** — {r['pts']} pts &nbsp;&nbsp; _(Hoyos: {r['hoyos']})_")
 
     if hole_nums and any(detail.values()):
         st.divider()
