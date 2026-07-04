@@ -433,36 +433,18 @@ def _capture_group_scores(torneo, group):
             unsafe_allow_html=True
         )
 
-        # ── Grid de botones 4 columnas x 3 filas: 1-11 + >11 ──
-        GRID = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, ">11"]
-        rows_grid = [GRID[i:i+4] for i in range(0, len(GRID), 4)]
-        for row_g in rows_grid:
-            cols_g = st.columns(4)
-            for ci, val in enumerate(row_g):
-                if val == ">11":
-                    if cols_g[ci].button(">11", key=f"gt11_{gross_key}", use_container_width=True):
-                        st.session_state[f"show_manual_{gross_key}"] = True
-                        st.rerun()
-                else:
-                    selected = (current_gross == val)
-                    label = f"● {val}" if selected else str(val)
-                    btn_type = "primary" if selected else "secondary"
-                    if cols_g[ci].button(label, key=f"btn_{gross_key}_{val}", type=btn_type, use_container_width=True):
-                        st.session_state[gross_key] = val
-                        st.session_state.pop(f"show_manual_{gross_key}", None)
-                        st.rerun()
-
-        if ss_get(f"show_manual_{gross_key}") or (current_gross and current_gross > 11):
-            manual_val = current_gross if (current_gross and current_gross > 11) else 12
-            manual = st.number_input(
-                "Golpes (12+)", min_value=12, max_value=20,
-                value=manual_val,
-                key=f"manual_{gross_key}",
-            )
-            if manual != current_gross:
-                st.session_state[gross_key] = manual
-                st.rerun()
-
+        # ── Number input con +/- , default en blanco para hoyo nuevo ──
+        gross = st.number_input(
+            "Golpes",
+            min_value=1, max_value=20,
+            value=current_gross,
+            step=1,
+            key=gross_key,
+            label_visibility="collapsed",
+        )
+        if gross != current_gross:
+            st.session_state[gross_key] = gross
+            st.rerun()
         st.markdown(
             f"<div style='background:{color};border-radius:0 0 10px 10px;height:5px;margin-bottom:12px'></div>",
             unsafe_allow_html=True
