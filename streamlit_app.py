@@ -452,8 +452,7 @@ def _capture_group_scores(torneo, group):
             scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
 
     all_captured = all(v["gross"] is not None for v in scores_input.values())
-    with st.form(key=f"form_save_{group['id']}_{hnum}"):
-        submitted = st.form_submit_button(f"💾 Guardar Hoyo {hnum}", type="primary", use_container_width=True, disabled=not all_captured)
+    submitted = st.button(f"💾 Guardar Hoyo {hnum}", type="primary", use_container_width=True, disabled=not all_captured)
 
     if submitted:
         for pid, s in scores_input.items():
