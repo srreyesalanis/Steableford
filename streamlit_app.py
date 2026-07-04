@@ -647,7 +647,7 @@ def leaderboard_ui():
         calc = sf.calc_hole(s["strokes"], hole["par"], ch, hole["handicap"])
         pts_by_player[pid] += calc["points"]
         holes_by_player[pid] += 1
-        detail[pid][s["hole_number"]] = {"strokes": s["strokes"], "points": calc["points"]}
+        detail[pid][s["hole_number"]] = {"strokes": s["strokes"], "net": calc["net"], "points": calc["points"]}
 
     ranked = []
     for p in players:
@@ -736,8 +736,15 @@ def leaderboard_ui():
                 if d:
                     pts = d["points"]
                     strokes = d["strokes"]
+                    net = d["net"]
                     bg = "#c8e6c9" if pts >= 3 else "#fff9c4" if pts == 2 else "#ffcdd2" if pts == 1 else "#ef9a9a"
-                    body += f"<td style='text-align:center;background:{bg};padding:4px 6px'>{strokes}<br><span style='font-size:0.75rem;font-weight:bold'>{pts}p</span></td>"
+                    body += (
+                        f"<td style='text-align:center;background:{bg};padding:3px 4px;line-height:1.3'>"
+                        f"<span style='font-size:0.8rem'>{strokes}</span>"
+                        f"<span style='font-size:0.68rem;color:#555'> /{net}</span><br>"
+                        f"<span style='font-size:0.72rem;font-weight:bold'>{pts}p</span>"
+                        f"</td>"
+                    )
                     total_str += strokes
                     if h <= 9:
                         front_pts += pts; front_str += strokes
