@@ -302,6 +302,20 @@ def capture_scores_ui():
 
     st.divider()
 
+    # Cache de scores existentes por torneo+hoyo
+    cache_key = f"scores_{torneo['id']}_{hnum}"
+    if cache_key not in st.session_state:
+        existing_all = {}
+        for p in players:
+            scores = db.get_player_scores(
+                torneo["id"],
+                player_id=p.get("player_id"),
+                guest_id=p.get("guest_id"),
+            )
+            existing_all[p["id"]] = scores
+        ss_set(cache_key, existing_all)
+    existing_all = ss_get(cache_key)
+
     # Colores por jugador
     COLORS = ["#e3f2fd", "#f3e5f5", "#e8f5e9", "#fff8e1", "#fce4ec", "#e0f7fa", "#f1f8e9", "#ede7f6"]
 
@@ -309,11 +323,7 @@ def capture_scores_ui():
     for idx, player in enumerate(players):
         course_hcp = player["course_handicap"]
         received = sf.strokes_received(course_hcp, hh)
-        existing = db.get_player_scores(
-            torneo["id"],
-            player_id=player.get("player_id"),
-            guest_id=player.get("guest_id"),
-        )
+        existing = existing_all.get(player["id"], {})
         saved = existing.get(hnum, {})
         default_strokes = saved.get("strokes", par)
 
@@ -354,6 +364,9 @@ def capture_scores_ui():
                 player_id=p.get("player_id"),
                 guest_id=p.get("guest_id"),
             )
+        # Limpiar cache para que recargue valores actualizados
+        ss_set(f"scores_{torneo['id']}_{hnum}", None)
+        st.session_state.pop(f"scores_{torneo['id']}_{hnum}", None)
         st.success(f"✅ Hoyo {hnum} guardado para {len(scores_input)} jugadores")
 
 
