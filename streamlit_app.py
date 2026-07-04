@@ -486,7 +486,121 @@ def _capture_group_scores(torneo, group):
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LEADERBOARD
+
 # ══════════════════════════════════════════════════════════════════════════════
+# PDF EXPORT
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _generate_leaderboard_pdf(torneo_name, ranked, detail, holes, hole_nums,
+                              front_pts_map, back_pts_map, total_common_map,
+                              common_label, pid_to_name):
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.enums import TA_CENTER
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=10*mm, rightMargin=10*mm,
+                            topMargin=12*mm, bottomMargin=12*mm)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    title_style = ParagraphStyle('title', fontSize=16, alignment=TA_CENTER, spaceAfter=4)
+    sub_style   = ParagraphStyle('sub',   fontSize=10, alignment=TA_CENTER, spaceAfter=8, textColor=colors.grey)
+    elements.append(Paragraph(f"⛳ Leaderboard — {torneo_name}", title_style))
+    elements.append(Paragraph(common_label, sub_style))
+
+    PTS_COLORS_PDF = {4: colors.HexColor('#66bb6a'), 3: colors.HexColor('#aed581'),
+                      2: colors.HexColor('#fff176'), 1: colors.HexColor('#ffb74d'),
+                      0: colors.HexColor('#ef9a9a')}
+
+    def best_name(pts_map):
+        if not pts_map: return '—'
+        best = max(pts_map.values())
+        names = [pid_to_name.get(p, '?') for p, v in pts_map.items() if v == best]
+        return f"{' / '.join(names)} ({best}pts)"
+
+    winner_data = [
+        ['🌅 Front 9', '🌆 Back 9', '🎖️ Torneo'],
+        [best_name(front_pts_map), best_name(back_pts_map), best_name(total_common_map)],
+    ]
+    winner_table = Table(winner_data, colWidths=[85*mm, 85*mm, 85*mm])
+    winner_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#fff8e1')),
+        ('FONTSIZE', (0,0), (-1,-1), 9),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
+    ]))
+    elements.append(winner_table)
+    elements.append(Spacer(1, 6*mm))
+
+    col_w = 9*mm
+    name_w = 38*mm
+    header_row = ['Jugador']
+    for h in hole_nums:
+        header_row.append(f'H{h}\nP{holes[h]["par"]}')
+        if h == 9:  header_row.append('F9')
+        if h == 18: header_row.append('B9')
+    header_row.append('Total')
+
+    col_widths = [name_w] + [col_w] * (len(header_row) - 1)
+
+    table_data = [header_row]
+    cell_colors = {}
+
+    for ri, r in enumerate(ranked):
+        row_idx = ri + 1
+        pid = r['pid']
+        row = [r['name']]
+        front_p = back_p = front_s = back_s = total_s = 0
+        ci = 1
+        for h in hole_nums:
+            d = detail[pid].get(h)
+            if d:
+                pts = d['points']; strokes = d['strokes']
+                row.append(f"{strokes}\n{pts}p")
+                cell_colors[(row_idx, ci)] = PTS_COLORS_PDF.get(pts, colors.white)
+                total_s += strokes
+                if h <= 9: front_p += pts; front_s += strokes
+                else:       back_p += pts; back_s += strokes
+            else:
+                row.append('—')
+            ci += 1
+            if h == 9:
+                row.append(f"{front_s}\n{front_p}p")
+                cell_colors[(row_idx, ci)] = colors.HexColor('#e3f2fd')
+                ci += 1
+            elif h == 18:
+                row.append(f"{back_s}\n{back_p}p")
+                cell_colors[(row_idx, ci)] = colors.HexColor('#e3f2fd')
+                ci += 1
+        row.append(f"{total_s}\n{r['pts']}p")
+        cell_colors[(row_idx, ci)] = colors.HexColor('#bbdefb')
+        table_data.append(row)
+
+    detail_table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    base_style = [
+        ('FONTSIZE', (0,0), (-1,-1), 7),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('ALIGN', (1,0), (-1,-1), 'CENTER'),
+        ('GRID', (0,0), (-1,-1), 0.3, colors.lightgrey),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1565c0')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f5f5f5')]),
+    ]
+    for (r, c), col in cell_colors.items():
+        base_style.append(('BACKGROUND', (c, r), (c, r), col))
+    detail_table.setStyle(TableStyle(base_style))
+    elements.append(detail_table)
+
+    doc.build(elements)
+    return buf.getvalue()
 
 def leaderboard_ui():
     st.title("⛳ Leaderboard — Stableford")
@@ -641,6 +755,28 @@ def leaderboard_ui():
             f"<div style='overflow-x:auto'><table style='border-collapse:collapse;width:100%;font-size:0.85rem'>"
             f"{header}{body}</table></div>",
             unsafe_allow_html=True
+        )
+
+    # ── Botón exportar PDF ──
+    if ranked:
+        pdf_bytes = _generate_leaderboard_pdf(
+            torneo_name=torneo["name"],
+            ranked=ranked,
+            detail=detail,
+            holes=holes,
+            hole_nums=hole_nums,
+            front_pts_map=dict(front_pts_map),
+            back_pts_map=dict(back_pts_map),
+            total_common_map=dict(total_common_map),
+            common_label=common_label,
+            pid_to_name=pid_to_name,
+        )
+        st.download_button(
+            label="📄 Exportar PDF",
+            data=pdf_bytes,
+            file_name=f"leaderboard_{torneo['name'].replace(' ', '_')}.pdf",
+            mime="application/pdf",
+            use_container_width=True,
         )
 
 # ══════════════════════════════════════════════════════════════════════════════
