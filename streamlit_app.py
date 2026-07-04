@@ -482,7 +482,6 @@ def _capture_group_scores(torneo, group):
         else:
             ss_set(f"hole_idx_{group['id']}", hnum)
             st.success(f"✅ Hoyo {hnum} guardado — siguiente: Hoyo {hnum + 1}")
-            st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LEADERBOARD
