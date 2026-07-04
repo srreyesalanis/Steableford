@@ -412,10 +412,7 @@ def _capture_group_scores(torneo, group):
         color = COLORS[idx % len(COLORS)]
         ventaja = f" | Ventaja: {received}" if received > 0 else ""
         gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
-        if gross_key not in st.session_state:
-            st.session_state[gross_key] = saved.get("strokes", None)
-
-        # Card header
+        current_gross = saved.get("strokes", None)
         st.markdown(
             f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
             f"<b>{player['player_name']}</b> "
@@ -424,11 +421,10 @@ def _capture_group_scores(torneo, group):
             unsafe_allow_html=True
         )
         gross = st.number_input(
-            "Golpes",
+            f"Golpes — {player['player_name']}",
             min_value=1, max_value=20,
-            value=st.session_state[gross_key],
+            value=current_gross,
             step=1,
-            key=gross_key,
             placeholder="—",
             label_visibility="collapsed",
         )
