@@ -501,14 +501,20 @@ def leaderboard_ui():
 
         header = "<tr><th style='text-align:left;padding:4px 8px'>Jugador</th>"
         for h in hole_nums:
-            p = holes[h]["par"]
-            header += f"<th style='text-align:center;padding:4px 6px'>H{h}<br><span style='font-size:0.7rem;color:#888'>P{p}</span></th>"
-        header += "<th style='text-align:center;padding:4px 8px'>Total</th></tr>"
+            ph = holes[h]["par"]
+            header += f"<th style='text-align:center;padding:4px 6px'>H{h}<br><span style='font-size:0.7rem;color:#888'>P{ph}</span></th>"
+            if h == 9:
+                header += "<th style='text-align:center;padding:4px 6px;background:#e3f2fd'><b>F9</b></th>"
+            elif h == 18:
+                header += "<th style='text-align:center;padding:4px 6px;background:#e3f2fd'><b>B9</b></th>"
+        header += "<th style='text-align:center;padding:4px 8px;background:#bbdefb'><b>Total</b></th></tr>"
 
         body = ""
         for r in ranked:
             pid = r["pid"]
             body += f"<tr><td style='padding:4px 8px;white-space:nowrap'><b>{r['name']}</b></td>"
+            front_pts = 0
+            back_pts = 0
             for h in hole_nums:
                 d = detail[pid].get(h)
                 if d:
@@ -516,9 +522,17 @@ def leaderboard_ui():
                     strokes = d["strokes"]
                     bg = "#c8e6c9" if pts >= 3 else "#fff9c4" if pts == 2 else "#ffcdd2" if pts == 1 else "#ef9a9a"
                     body += f"<td style='text-align:center;background:{bg};padding:4px 6px'>{strokes}<br><span style='font-size:0.75rem;font-weight:bold'>{pts}p</span></td>"
+                    if h <= 9:
+                        front_pts += pts
+                    else:
+                        back_pts += pts
                 else:
                     body += "<td style='text-align:center;color:#ccc;padding:4px 6px'>—</td>"
-            body += f"<td style='text-align:center;font-weight:bold;padding:4px 8px'>{r['pts']}</td></tr>"
+                if h == 9:
+                    body += f"<td style='text-align:center;background:#e3f2fd;padding:4px 6px;font-weight:bold'>{front_pts}</td>"
+                elif h == 18:
+                    body += f"<td style='text-align:center;background:#e3f2fd;padding:4px 6px;font-weight:bold'>{back_pts}</td>"
+            body += f"<td style='text-align:center;font-weight:bold;padding:4px 8px;background:#bbdefb'>{r['pts']}</td></tr>"
 
         st.markdown(
             f"<div style='overflow-x:auto'><table style='border-collapse:collapse;width:100%;font-size:0.85rem'>"
