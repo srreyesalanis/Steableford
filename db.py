@@ -265,7 +265,20 @@ def get_scores(tournament_id: str):
     ).data or []
 
 
-def get_group_by_code(code: str):
+def get_player_scores(tournament_id: str, player_id: str = None, guest_id: str = None):
+    sb = get_authed_client()
+    q = (
+        sb.table("tournament_scores")
+        .select("hole_number, strokes, net_strokes")
+        .eq("tournament_id", tournament_id)
+    )
+    if player_id:
+        q = q.eq("player_id", player_id)
+    if guest_id:
+        q = q.eq("guest_id", guest_id)
+    return {r["hole_number"]: r for r in (q.execute().data or [])}
+
+
     """Busca un grupo por su código numérico y devuelve {group, torneo} o None."""
     sb = get_authed_client()
     res = (
