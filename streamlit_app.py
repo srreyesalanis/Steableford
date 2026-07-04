@@ -315,22 +315,14 @@ def capture_scores_ui():
         default_strokes = saved.get("strokes", par)
 
         # Card por jugador
-        st.markdown(
-            f"<b>{player['player_name']}</b> "
-            f"<span style='color:#666;font-size:0.85rem'>HCP {course_hcp} (+{received})</span>",
-            unsafe_allow_html=True
-        )
-        c1, c2 = st.columns([2, 3], vertical_alignment="center")
-        gross = c1.number_input(
-            "g", min_value=1, max_value=15,
+        prev_calc = sf.calc_hole(default_strokes, par, course_hcp, hh)
+        gross = st.number_input(
+            f"{player['player_name']} — HCP {course_hcp} (+{received}) | Net {prev_calc['net']} · Pts {prev_calc['points']}",
+            min_value=1, max_value=15,
             value=default_strokes, key=f"gross_{player['id']}",
-            label_visibility="collapsed"
         )
-        calc = sf.calc_hole(gross, par, course_hcp, hh)
-        pts_color = "#2e7d32" if calc['points'] >= 2 else "#c62828"
-        c2.markdown(f"Net **{calc['net']}** &nbsp; Pts **{calc['points']}**")
         st.divider()
-        scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
+        scores_input[player["id"]] = {"player": player, "gross": gross, "calc": sf.calc_hole(gross, par, course_hcp, hh)}
 
     st.divider()
     if st.button(f"💾 Guardar Hoyo {hnum}", type="primary"):
