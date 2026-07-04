@@ -319,40 +319,42 @@ def capture_scores_ui():
     # Colores por jugador
     COLORS = ["#e3f2fd", "#f3e5f5", "#e8f5e9", "#fff8e1", "#fce4ec", "#e0f7fa", "#f1f8e9", "#ede7f6"]
 
-    scores_input = {}
-    for idx, player in enumerate(players):
-        course_hcp = player["course_handicap"]
-        received = sf.strokes_received(course_hcp, hh)
-        existing = existing_all.get(player["id"], {})
-        saved = existing.get(hnum, {})
-        default_strokes = saved.get("strokes", par)
+    with st.form(key=f"form_{torneo['id']}_{hnum}"):
+        scores_input = {}
+        for idx, player in enumerate(players):
+            course_hcp = player["course_handicap"]
+            received = sf.strokes_received(course_hcp, hh)
+            existing = existing_all.get(player["id"], {})
+            saved = existing.get(hnum, {})
+            default_strokes = saved.get("strokes", par)
 
-        color = COLORS[idx % len(COLORS)]
-        prev_calc = sf.calc_hole(default_strokes, par, course_hcp, hh)
-        ventaja = f" | Ventaja: {received}" if received > 0 else ""
+            color = COLORS[idx % len(COLORS)]
+            ventaja = f" | Ventaja: {received}" if received > 0 else ""
+            prev_calc = sf.calc_hole(default_strokes, par, course_hcp, hh)
 
-        st.markdown(
-            f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
-            f"<b>{player['player_name']}</b> "
-            f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
-            f"&nbsp;&nbsp;<span style='font-size:0.85rem'>Net: <b>{prev_calc['net']}</b> &nbsp; Pts: <b>{prev_calc['points']}</b></span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-        gross = st.number_input(
-            "Golpes", min_value=1, max_value=15,
-            value=default_strokes, key=f"gross_{player['id']}",
-            label_visibility="collapsed"
-        )
-        calc = sf.calc_hole(gross, par, course_hcp, hh)
-        st.markdown(
-            f"<div style='background:{color};border-radius:0 0 10px 10px;height:6px;margin-top:-8px;margin-bottom:10px'></div>",
-            unsafe_allow_html=True
-        )
-        scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
+            st.markdown(
+                f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
+                f"<b>{player['player_name']}</b> "
+                f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
+                f"&nbsp;&nbsp;<span style='font-size:0.85rem'>Net: <b>{prev_calc['net']}</b> &nbsp; Pts: <b>{prev_calc['points']}</b></span>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+            gross = st.number_input(
+                "Golpes", min_value=1, max_value=15,
+                value=default_strokes, key=f"gross_{player['id']}",
+                label_visibility="collapsed"
+            )
+            calc = sf.calc_hole(gross, par, course_hcp, hh)
+            st.markdown(
+                f"<div style='background:{color};border-radius:0 0 10px 10px;height:6px;margin-top:-8px;margin-bottom:10px'></div>",
+                unsafe_allow_html=True
+            )
+            scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
 
-    st.divider()
-    if st.button(f"💾 Guardar Hoyo {hnum}", type="primary"):
+        submitted = st.form_submit_button(f"💾 Guardar Hoyo {hnum}", type="primary", use_container_width=True)
+
+    if submitted:
         for pid, s in scores_input.items():
             p = s["player"]
             db.upsert_score(
@@ -364,8 +366,6 @@ def capture_scores_ui():
                 player_id=p.get("player_id"),
                 guest_id=p.get("guest_id"),
             )
-        # Limpiar cache para que recargue valores actualizados
-        ss_set(f"scores_{torneo['id']}_{hnum}", None)
         st.session_state.pop(f"scores_{torneo['id']}_{hnum}", None)
         st.success(f"✅ Hoyo {hnum} guardado para {len(scores_input)} jugadores")
 
