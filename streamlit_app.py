@@ -316,26 +316,21 @@ def capture_scores_ui():
 
         # Card por jugador
         st.markdown(
-            f"<div style='font-size:0.9rem;font-weight:600;margin-bottom:4px'>"
-            f"{player['player_name']} "
-            f"<span style='font-weight:400;color:#666'>HCP {course_hcp} (+{received})</span>"
-            f"</div>",
+            f"<b>{player['player_name']}</b> "
+            f"<span style='color:#666;font-size:0.85rem'>HCP {course_hcp} (+{received})</span>",
             unsafe_allow_html=True
         )
-        c1, c2 = st.columns([3, 2])
+        c1, c2 = st.columns([2, 3], vertical_alignment="center")
         gross = c1.number_input(
-            "Golpes", min_value=1, max_value=15,
+            "g", min_value=1, max_value=15,
             value=default_strokes, key=f"gross_{player['id']}",
             label_visibility="collapsed"
         )
         calc = sf.calc_hole(gross, par, course_hcp, hh)
         pts_color = "#2e7d32" if calc['points'] >= 2 else "#c62828"
         c2.markdown(
-            f"<div style='padding-top:10px;font-size:1rem;line-height:1.2'>"
             f"Net&nbsp;<b>{calc['net']}</b>&nbsp;&nbsp;"
-            f"Pts&nbsp;<b style='color:{pts_color}'>{calc['points']}</b>"
-            f"</div>",
-            unsafe_allow_html=True
+            f"Pts&nbsp;<b style='font-size:1.1rem;color:{pts_color}'>{calc['points']}</b>"
         )
         st.divider()
         scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
