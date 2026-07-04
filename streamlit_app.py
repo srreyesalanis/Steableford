@@ -97,6 +97,18 @@ def admin_login():
 
 def admin_panel():
     st.title("⛳ Admin — Stableford")
+
+    # Si hay un grupo seleccionado para capturar, mostrar captura con boton de regreso
+    if st.session_state.get("admin_capture_group"):
+        g = st.session_state["admin_capture_group"]
+        t = st.session_state["admin_capture_torneo"]
+        if st.button("← Volver al admin"):
+            st.session_state.pop("admin_capture_group", None)
+            st.session_state.pop("admin_capture_torneo", None)
+            st.rerun()
+        _capture_group_scores(t, g)
+        return
+
     tab_create, tab_codes, tab_delete = st.tabs(["➕ Crear Torneo", "🔑 Ver Códigos", "🗑️ Borrar Torneo"])
     with tab_create:
         create_tournament_ui()
@@ -284,6 +296,10 @@ def view_codes_ui():
             f"</div>",
             unsafe_allow_html=True
         )
+        if st.button(f"🎯 Capturar scores — {g['name']}", key=f"cap_{g['id']}", use_container_width=True):
+            st.session_state["admin_capture_group"] = g
+            st.session_state["admin_capture_torneo"] = torneo
+            st.rerun()
 
 
 
