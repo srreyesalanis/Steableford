@@ -216,13 +216,8 @@ def create_tournament_ui():
                 guest_id = None
                 player_id = d.get("player_id")
 
-                # Calcular Course Handicap real: HI × (Slope/113) + (CR - Par)
-                ch = sf.course_handicap(
-                    d["handicap_index"],
-                    selected_tee["slope"],
-                    float(selected_tee["rating"]),
-                    selected_tee["par"],
-                )
+                # Usar handicap index directamente (sin calcular course handicap)
+                ch = db.round_hcp(d["handicap_index"])
 
                 if d.get("guest"):
                     guest = db.create_guest(d["name"], d["handicap_index"], torneo["id"])
