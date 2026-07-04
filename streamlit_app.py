@@ -40,7 +40,6 @@ def random_code(n=6):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _try_restore_session():
-    """Al arrancar, intenta renovar la sesión desde el refresh token guardado."""
     if ss_get("admin_logged_in"):
         return
     rt = ss_get("refresh_token")
@@ -128,7 +127,6 @@ def create_tournament_ui():
     all_players = db.get_players()
     player_map = {p["name"]: p for p in all_players}
 
-    # Lista dinámica de jugadores
     if "player_rows" not in st.session_state:
         ss_set("player_rows", [{"type": "registered", "data": None}])
 
@@ -175,7 +173,6 @@ def create_tournament_ui():
             st.error("Agrega al menos un jugador.")
             return
 
-        # Crear torneo
         access_code = random_code()
         torneo = db.create_tournament(
             name=torneo_nombre,
@@ -187,14 +184,11 @@ def create_tournament_ui():
             st.error("Error al crear el torneo.")
             return
 
-        # Calcular course handicap de cada jugador
-        holes = db.get_holes(course_id)
         group_code = random_code()
         group = db.create_group(torneo["id"], "Grupo 1", group_code)
 
         for r in valid:
             d = r["data"]
-            # Todos los jugadores usan el handicap index directo como course handicap
             ch = int(round(d["handicap_index"]))
             guest_id = None
             player_id = d.get("player_id")
@@ -217,7 +211,7 @@ def create_tournament_ui():
         st.balloons()
 
 
-# ── Borrar Torneo ──────────────────────────────────────────────────────────────────────────────
+# ── Borrar Torneo ──────────────────────────────────────────────────────────────
 
 def delete_tournament_ui():
     st.header("🗑️ Borrar Torneo")
@@ -255,7 +249,6 @@ def capture_scores_ui():
     t_label = st.selectbox("Torneo", list(t_map.keys()), key="score_tournament")
     torneo = t_map[t_label]
 
-    # Tee info
     tee_id = torneo.get("tee_id")
     if not tee_id:
         st.warning("Este torneo no tiene tee asignado.")
@@ -286,54 +279,61 @@ def capture_scores_ui():
         st.warning("No hay jugadores en este torneo.")
         return
 
-    # Selector de jugador
-    p_map = {p["player_name"]: p for p in players}
-    p_name = st.selectbox("Jugador", list(p_map.keys()), key="score_player")
-    player = p_map[p_name]
-
-    course_hcp = player["course_handicap"]
-    st.caption(f"Course Handicap: **{course_hcp}**")
-
-    # Scores existentes
-    existing = db.get_player_scores(
-        torneo["id"],
-        player_id=player.get("player_id"),
-        guest_id=player.get("guest_id"),
-    )
+    # Selector de hoyo
+    hole_options = {f"Hoyo {h['hole_number']} — Par {h['par']} | HCP {h['handicap']}": h for h in holes}
+    hole_label = st.selectbox("Hoyo", list(hole_options.keys()), key="score_hole")
+    hole = hole_options[hole_label]
+    hnum = hole["hole_number"]
+    par = hole["par"]
+    hh = hole["handicap"]
 
     st.divider()
 
-    for hole in holes:
-        hnum = hole["hole_number"]
-        par = hole["par"]
-        hh = hole["handicap"]  # hole handicap (dificultad)
-        received = sf.strokes_received(course_hcp, hh)
+    # Header de columnas
+    col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
+    col1.markdown("**Jugador**")
+    col2.markdown("**Golpes**")
+    col3.markdown("**Net**")
+    col4.markdown("**Pts**")
 
+    scores_input = {}
+    for player in players:
+        course_hcp = player["course_handicap"]
+        received = sf.strokes_received(course_hcp, hh)
+        existing = db.get_player_scores(
+            torneo["id"],
+            player_id=player.get("player_id"),
+            guest_id=player.get("guest_id"),
+        )
         saved = existing.get(hnum, {})
         default_strokes = saved.get("strokes", par)
 
-        with st.expander(f"Hoyo {hnum} — Par {par} | HCP {hh} | Ventaja: +{received}", expanded=hnum == 1):
-            gross = st.number_input(
-                "Golpes brutos", min_value=1, max_value=15,
-                value=default_strokes, key=f"gross_{hnum}"
-            )
-            calc = sf.calc_hole(gross, par, course_hcp, hh)
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Net", calc["net"])
-            col2.metric("Puntos", calc["points"])
-            col3.metric("vs Par", f"{calc['net'] - par:+d}")
+        col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
+        col1.markdown(f"{player['player_name']} *(+{received})*")
+        gross = col2.number_input(
+            "Golpes", min_value=1, max_value=15,
+            value=default_strokes, key=f"gross_{player['id']}",
+            label_visibility="collapsed"
+        )
+        calc = sf.calc_hole(gross, par, course_hcp, hh)
+        col3.markdown(f"**{calc['net']}**")
+        col4.markdown(f"**{calc['points']}**")
+        scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
 
-            if st.button(f"💾 Guardar Hoyo {hnum}", key=f"save_{hnum}"):
-                db.upsert_score(
-                    tournament_id=torneo["id"],
-                    hole_number=hnum,
-                    strokes=gross,
-                    net_strokes=calc["net"],
-                    group_id=player["group_id"],
-                    player_id=player.get("player_id"),
-                    guest_id=player.get("guest_id"),
-                )
-                st.success(f"✅ Hoyo {hnum} guardado — {calc['points']} pts")
+    st.divider()
+    if st.button(f"💾 Guardar Hoyo {hnum}", type="primary"):
+        for pid, s in scores_input.items():
+            p = s["player"]
+            db.upsert_score(
+                tournament_id=torneo["id"],
+                hole_number=hnum,
+                strokes=s["gross"],
+                net_strokes=s["calc"]["net"],
+                group_id=p["group_id"],
+                player_id=p.get("player_id"),
+                guest_id=p.get("guest_id"),
+            )
+        st.success(f"✅ Hoyo {hnum} guardado para {len(scores_input)} jugadores")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -355,12 +355,10 @@ def leaderboard_ui():
     players = db.get_all_tournament_players(torneo["id"])
     scores_raw = db.get_scores(torneo["id"])
 
-    # Agrupar puntos por jugador
     from collections import defaultdict
     pts_by_player = defaultdict(int)
     holes_by_player = defaultdict(int)
 
-    # Necesitamos course_hcp por jugador
     hcp_map = {p["player_id"] or p["guest_id"]: p["course_handicap"] for p in players}
 
     sb = db.get_authed_client()
@@ -386,7 +384,6 @@ def leaderboard_ui():
         pts_by_player[pid] += calc["points"]
         holes_by_player[pid] += 1
 
-    # Construir tabla
     rows = []
     for p in players:
         pid = p.get("player_id") or p.get("guest_id")
@@ -430,4 +427,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
