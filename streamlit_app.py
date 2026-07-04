@@ -430,30 +430,16 @@ def _capture_group_scores(torneo, group):
             key=gross_key,
             label_visibility="collapsed",
         )
-        # Calcular Net/Pts con el valor actual del widget (sin rerun)
-        calc_live = sf.calc_hole(gross, par, course_hcp, hh) if gross is not None else None
-        if calc_live:
-            pts_color = PTS_COLORS.get(calc_live["points"], "#fff")
-            result_html = (
-                f" &nbsp;<span style='background:{pts_color};border-radius:6px;padding:2px 8px;font-weight:bold'>"
-                f"Net {calc_live['net']} \u2022 {calc_live['points']}pts</span>"
-            )
-        else:
-            result_html = " &nbsp;<span style='color:#aaa'>sin capturar</span>"
-        # Actualizar header inline
         st.markdown(
-            f"<div style='background:{color};border-radius:0 0 10px 10px;padding:4px 14px 6px 14px;margin-top:-8px;margin-bottom:12px;font-size:0.85rem'>"
-            f"{result_html}"
-            f"</div>",
+            f"<div style='background:{color};border-radius:0 0 10px 10px;height:5px;margin-bottom:14px'></div>",
             unsafe_allow_html=True
         )
 
-        final_gross = gross
-        if final_gross is not None and calc_live is not None:
+        if gross is not None:
             scores_input[player["id"]] = {
                 "player": player,
-                "gross": final_gross,
-                "calc": calc_live
+                "gross": gross,
+                "calc": sf.calc_hole(gross, par, course_hcp, hh)
             }
         else:
             scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
