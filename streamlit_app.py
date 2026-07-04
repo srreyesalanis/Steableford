@@ -205,6 +205,7 @@ def create_tournament_ui():
 
     if st.button("✅ Crear Torneo", type="primary"):
         access_code = random_code()
+        torneo_nombre = db.unique_tournament_name(torneo_nombre)
         torneo = db.create_tournament(
             name=torneo_nombre,
             date=str(torneo_fecha),

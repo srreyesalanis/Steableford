@@ -85,6 +85,16 @@ def get_tournaments():
     sb = get_authed_client()
     return (sb.table("tournaments").select("id, name, date, access_code, tee_id, format").neq("format", "bola_baja_parejas").order("date", desc=True).execute()).data or []
 
+def unique_tournament_name(name: str) -> str:
+    """Si ya existe un torneo con ese nombre, agrega (2), (3), etc."""
+    existing = [t["name"] for t in get_tournaments()]
+    if name not in existing:
+        return name
+    i = 2
+    while f"{name} ({i})" in existing:
+        i += 1
+    return f"{name} ({i})"
+
 
 def get_tournament(tournament_id: str):
     sb = get_authed_client()
