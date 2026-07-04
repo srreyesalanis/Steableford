@@ -167,8 +167,18 @@ def create_tournament_ui():
                 name = cols[1].selectbox("Jugador", ["— Seleccionar —"] + list(player_map.keys()), key=f"pname_{gi}_{i}")
                 if name != "— Seleccionar —":
                     p = player_map[name]
-                    hcp_default = db.round_hcp(float(p["current_handicap"] or 0))
-                    hcp = cols[2].number_input("HCP", value=hcp_default, step=1, min_value=0, max_value=54, key=f"hcp_{gi}_{i}")
+                    hcp_en_db = float(p["current_handicap"] or 0)
+                    tiene_hcp = hcp_en_db > 0
+                    if tiene_hcp:
+                        # HCP en BD: mostrar como texto, no editable
+                        cols[2].markdown(
+                            f"<div style='padding:6px 4px;font-size:0.95rem'>HCP <b>{db.round_hcp(hcp_en_db)}</b></div>",
+                            unsafe_allow_html=True
+                        )
+                        hcp = hcp_en_db
+                    else:
+                        # Sin HCP: permitir capturarlo
+                        hcp = cols[2].number_input("HCP", value=0, step=1, min_value=0, max_value=54, key=f"hcp_{gi}_{i}")
                     rows[i]["data"] = {"name": name, "player_id": p["id"], "handicap_index": float(hcp)}
                 else:
                     rows[i]["data"] = None
