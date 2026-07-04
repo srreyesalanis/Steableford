@@ -316,8 +316,9 @@ def capture_scores_ui():
 
         # Card por jugador
         prev_calc = sf.calc_hole(default_strokes, par, course_hcp, hh)
+        ventaja = f" | Ventaja: {received}" if received > 0 else ""
         gross = st.number_input(
-            f"{player['player_name']} — HCP {course_hcp} (+{received}) | Net {prev_calc['net']} · Pts {prev_calc['points']}",
+            f"{player['player_name']} — HCP {course_hcp}{ventaja} | Net {prev_calc['net']} · Pts {prev_calc['points']}",
             min_value=1, max_value=15,
             value=default_strokes, key=f"gross_{player['id']}",
         )
