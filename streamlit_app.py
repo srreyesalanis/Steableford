@@ -352,7 +352,7 @@ def capture_scores_ui():
             )
             gross = st.number_input(
                 "Golpes", min_value=1, max_value=15,
-                value=default_strokes, key=f"gross_{player['id']}",
+                value=default_strokes, key=f"gross_{hnum}_{player['id']}",
                 label_visibility="collapsed"
             )
             calc = sf.calc_hole(gross, par, course_hcp, hh)
