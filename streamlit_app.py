@@ -376,7 +376,13 @@ def capture_scores_ui():
                 guest_id=p.get("guest_id"),
             )
         st.session_state.pop(f"scores_{torneo['id']}_{hnum}", None)
-        st.success(f"✅ Hoyo {hnum} guardado para {len(scores_input)} jugadores")
+        # Avanzar al siguiente hoyo automáticamente
+        next_hole_idx = hnum % len(holes)  # hnum es 1-based, siguiente es hnum+1, wraps al 1
+        next_hole = holes[next_hole_idx]  # holes está ordenado, índice next_hole_idx = hnum
+        next_label = f"{'✅ ' if next_hole['hole_number'] in saved_holes else ''}Hoyo {next_hole['hole_number']} — Par {next_hole['par']} | HCP {next_hole['handicap']}"
+        st.success(f"✅ Hoyo {hnum} guardado — siguiente: Hoyo {next_hole['hole_number']}")
+        ss_set("score_hole", next_label)
+        st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
