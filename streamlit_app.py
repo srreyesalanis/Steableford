@@ -403,61 +403,57 @@ def _capture_group_scores(torneo, group):
     COLORS = ["#e3f2fd", "#f3e5f5", "#e8f5e9", "#fff8e1", "#fce4ec", "#e0f7fa", "#f1f8e9", "#ede7f6"]
     PTS_COLORS = {4: "#66bb6a", 3: "#aed581", 2: "#fff176", 1: "#ffb74d", 0: "#ef9a9a"}
 
-    scores_input = {}
-    for idx, player in enumerate(players):
-        course_hcp = player["course_handicap"]
-        received = sf.strokes_received(course_hcp, hh)
-        existing = existing_all.get(player["id"], {})
-        saved = existing.get(hnum, {})
+    with st.form(key=f"form_{group['id']}_{hnum}"):
+        scores_input = {}
+        for idx, player in enumerate(players):
+            course_hcp = player["course_handicap"]
+            received = sf.strokes_received(course_hcp, hh)
+            existing = existing_all.get(player["id"], {})
+            saved = existing.get(hnum, {})
 
-        color = COLORS[idx % len(COLORS)]
-        ventaja = f" | Ventaja: {received}" if received > 0 else ""
+            color = COLORS[idx % len(COLORS)]
+            ventaja = f" | Ventaja: {received}" if received > 0 else ""
 
-        gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
-        # Valor inicial: solo setear la primera vez que se ve este hoyo+jugador
-        # Si ya existe en session_state (usuario lo modificó), no tocar
-        if gross_key not in st.session_state:
-            st.session_state[gross_key] = saved.get("strokes", None)
-        current_gross = st.session_state[gross_key]
+            gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
+            if gross_key not in st.session_state:
+                st.session_state[gross_key] = saved.get("strokes", None)
+            current_gross = st.session_state[gross_key]
 
-        # ── Card header ──
-        st.markdown(
-            f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
-            f"<b>{player['player_name']}</b> "
-            f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
+            # ── Card header ──
+            st.markdown(
+                f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
+                f"<b>{player['player_name']}</b> "
+                f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
 
-        # ── Number input con +/- , default en blanco para hoyo nuevo ──
-        gross = st.number_input(
-            "Golpes",
-            min_value=1, max_value=20,
-            value=current_gross,
-            step=1,
-            key=gross_key,
-            placeholder="—",
-            label_visibility="collapsed",
-        )
-        st.markdown(
-            f"<div style='background:{color};border-radius:0 0 10px 10px;height:5px;margin-bottom:14px'></div>",
-            unsafe_allow_html=True
-        )
+            # ── Number input dentro del form ──
+            gross = st.number_input(
+                "Golpes",
+                min_value=1, max_value=20,
+                value=current_gross,
+                step=1,
+                key=gross_key,
+                placeholder="—",
+                label_visibility="collapsed",
+            )
+            st.markdown(
+                f"<div style='background:{color};border-radius:0 0 10px 10px;height:5px;margin-bottom:14px'></div>",
+                unsafe_allow_html=True
+            )
 
-        if gross is not None:
-            scores_input[player["id"]] = {
-                "player": player,
-                "gross": gross,
-                "calc": sf.calc_hole(gross, par, course_hcp, hh)
-            }
-        else:
-            scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
+            if gross is not None:
+                scores_input[player["id"]] = {
+                    "player": player,
+                    "gross": gross,
+                    "calc": sf.calc_hole(gross, par, course_hcp, hh)
+                }
+            else:
+                scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
 
-    all_captured = all(v["gross"] is not None for v in scores_input.values())
-    if st.button(f"💾 Guardar Hoyo {hnum}", type="primary", use_container_width=True, disabled=not all_captured):
-        submitted = True
-    else:
-        submitted = False
+        all_captured = all(v["gross"] is not None for v in scores_input.values())
+        submitted = st.form_submit_button(f"💾 Guardar Hoyo {hnum}", type="primary", use_container_width=True, disabled=not all_captured)
 
     if submitted:
         for pid, s in scores_input.items():
