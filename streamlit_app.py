@@ -139,15 +139,15 @@ def create_tournament_ui():
             if name != "— Seleccionar —":
                 p = player_map[name]
                 hcp_default = float(p["current_handicap"] or 0)
-                hcp = cols[2].number_input("Hándicap Index", value=hcp_default, step=0.1, key=f"hcp_{i}")
-                manual = hcp != hcp_default
-                rows[i]["data"] = {"name": name, "player_id": p["id"], "handicap_index": hcp, "manual_hcp": manual}
+                hcp = cols[2].number_input("Hándicap", value=int(round(hcp_default)), step=1, min_value=0, max_value=54, key=f"hcp_{i}")
+                manual = hcp != int(round(hcp_default))
+                rows[i]["data"] = {"name": name, "player_id": p["id"], "handicap_index": float(hcp), "manual_hcp": manual}
             else:
                 rows[i]["data"] = None
         else:
             name = cols[1].text_input("Nombre del guest", key=f"gname_{i}")
-            hcp = cols[2].number_input("Hándicap Index", value=0.0, step=0.1, key=f"ghcp_{i}")
-            rows[i]["data"] = {"name": name, "handicap_index": hcp, "guest": True} if name else None
+            hcp = cols[2].number_input("Hándicap", value=0, step=1, min_value=0, max_value=54, key=f"ghcp_{i}")
+            rows[i]["data"] = {"name": name, "handicap_index": float(hcp), "guest": True} if name else None
 
         if cols[3].button("🗑️", key=f"del_{i}") and len(rows) > 1:
             rows.pop(i)
