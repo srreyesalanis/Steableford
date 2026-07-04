@@ -337,36 +337,44 @@ def capture_scores_ui(admin=False, group=None, torneo=None):
 
 
 def _capture_group_scores(torneo, group):
-    tee_id = torneo.get("tee_id")
-    if not tee_id:
-        st.warning("El torneo no tiene tee asignado.")
-        return
+    # ── Cachear datos estáticos en session_state para evitar consultas en cada rerun ──
+    ctx_key = f"_ctx_{torneo['id']}_{group['id']}"
+    if ctx_key not in st.session_state:
+        tee_id = torneo.get("tee_id")
+        if not tee_id:
+            st.warning("El torneo no tiene tee asignado.")
+            return
+        sb = db.get_authed_client()
+        tee_res = sb.table("tees").select("*").eq("id", tee_id).execute()
+        if not tee_res.data:
+            st.warning("No se encontró el tee.")
+            return
+        tee = tee_res.data[0]
+        course_id = tee.get("course_id")
+        if not course_id:
+            st.warning("El tee no tiene cancha.")
+            return
+        course_res = sb.table("courses").select("id").eq("id", course_id).execute()
+        course = course_res.data[0] if course_res.data else {}
+        holes = db.get_holes(course.get("id", ""))
+        if not holes:
+            st.warning("No hay hoyos configurados.")
+            return
+        players = db.get_group_players(group["id"])
+        if not players:
+            st.warning("No hay jugadores en este grupo.")
+            return
+        st.session_state[ctx_key] = {"holes": holes, "players": players}
 
-    sb = db.get_authed_client()
-    tee_res = sb.table("tees").select("*").eq("id", tee_id).execute()
-    if not tee_res.data:
-        st.warning("No se encontró el tee.")
-        return
-    tee = tee_res.data[0]
-    course_id = tee.get("course_id")
-    if not course_id:
-        st.warning("El tee no tiene cancha.")
-        return
+    ctx = st.session_state[ctx_key]
+    holes = ctx["holes"]
+    players = ctx["players"]
 
-    course_res = sb.table("courses").select("id").eq("id", course_id).execute()
-    course = course_res.data[0] if course_res.data else {}
-
-    holes = db.get_holes(course.get("id", ""))
-    if not holes:
-        st.warning("No hay hoyos configurados.")
-        return
-
-    players = db.get_group_players(group["id"])
-    if not players:
-        st.warning("No hay jugadores en este grupo.")
-        return
-
-    saved_holes = {s["hole_number"] for s in db.get_scores(torneo["id"]) if s.get("group_id") == group["id"]}
+    # saved_holes se refresca solo cuando cambia de hoyo (no en cada keystroke)
+    saved_holes_key = f"_saved_{torneo['id']}_{group['id']}"
+    if saved_holes_key not in st.session_state:
+        st.session_state[saved_holes_key] = {s["hole_number"] for s in db.get_scores(torneo["id"]) if s.get("group_id") == group["id"]}
+    saved_holes = st.session_state[saved_holes_key]
 
     hole_list = [
         f"{'✅ ' if h['hole_number'] in saved_holes else ''}Hoyo {h['hole_number']} — Par {h['par']} | HCP {h['handicap']}"
@@ -465,6 +473,8 @@ def _capture_group_scores(torneo, group):
                 guest_id=p.get("guest_id"),
             )
         st.session_state.pop(cache_key, None)
+        # Refrescar saved_holes para que el checkmark aparezca en el selector
+        st.session_state.pop(f"_saved_{torneo['id']}_{group['id']}", None)
         if hnum >= len(holes):
             ss_set(f"hole_idx_{group['id']}", len(holes) - 1)
             st.success("🏁 ¡Ronda completa!")
