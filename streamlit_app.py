@@ -412,23 +412,11 @@ def _capture_group_scores(torneo, group):
 
         current_gross = st.session_state.get(gross_key)
 
-        # ── Card del jugador ──
-        if current_gross is not None:
-            calc = sf.calc_hole(current_gross, par, course_hcp, hh)
-            pts_color = PTS_COLORS.get(calc["points"], "#fff")
-            result_html = (
-                f" &nbsp;<span style='background:{pts_color};border-radius:6px;padding:2px 8px;font-weight:bold'>"
-                f"Net {calc['net']} • {calc['points']}pts</span>"
-            )
-        else:
-            calc = None
-            result_html = " &nbsp;<span style='color:#aaa'>sin capturar</span>"
-
+        # ── Card header ──
         st.markdown(
             f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
             f"<b>{player['player_name']}</b> "
             f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
-            f"{result_html}"
             f"</div>",
             unsafe_allow_html=True
         )
@@ -442,20 +430,30 @@ def _capture_group_scores(torneo, group):
             key=gross_key,
             label_visibility="collapsed",
         )
-        if gross != current_gross:
-            st.session_state[gross_key] = gross
-            st.rerun()
+        # Calcular Net/Pts con el valor actual del widget (sin rerun)
+        calc_live = sf.calc_hole(gross, par, course_hcp, hh) if gross is not None else None
+        if calc_live:
+            pts_color = PTS_COLORS.get(calc_live["points"], "#fff")
+            result_html = (
+                f" &nbsp;<span style='background:{pts_color};border-radius:6px;padding:2px 8px;font-weight:bold'>"
+                f"Net {calc_live['net']} \u2022 {calc_live['points']}pts</span>"
+            )
+        else:
+            result_html = " &nbsp;<span style='color:#aaa'>sin capturar</span>"
+        # Actualizar header inline
         st.markdown(
-            f"<div style='background:{color};border-radius:0 0 10px 10px;height:5px;margin-bottom:12px'></div>",
+            f"<div style='background:{color};border-radius:0 0 10px 10px;padding:4px 14px 6px 14px;margin-top:-8px;margin-bottom:12px;font-size:0.85rem'>"
+            f"{result_html}"
+            f"</div>",
             unsafe_allow_html=True
         )
 
-        final_gross = st.session_state.get(gross_key)
-        if final_gross is not None:
+        final_gross = gross
+        if final_gross is not None and calc_live is not None:
             scores_input[player["id"]] = {
                 "player": player,
                 "gross": final_gross,
-                "calc": sf.calc_hole(final_gross, par, course_hcp, hh)
+                "calc": calc_live
             }
         else:
             scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
