@@ -113,7 +113,7 @@ def create_tournament_ui():
     tee_label = st.selectbox("Tee", list(tee_map.keys()))
     selected_tee = tee_map[tee_label]
 
-    torneo_nombre = st.text_input("Nombre del torneo", value=f"Torneo {date.today()}")
+    torneo_nombre = st.text_input("Nombre del torneo", value=f"Stableford {date.today()}")
     torneo_fecha = st.date_input("Fecha", value=date.today())
 
     st.subheader("Jugadores")
