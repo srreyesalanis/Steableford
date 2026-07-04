@@ -403,69 +403,67 @@ def _capture_group_scores(torneo, group):
     COLORS = ["#e3f2fd", "#f3e5f5", "#e8f5e9", "#fff8e1", "#fce4ec", "#e0f7fa", "#f1f8e9", "#ede7f6"]
     PTS_COLORS = {4: "#66bb6a", 3: "#aed581", 2: "#fff176", 1: "#ffb74d", 0: "#ef9a9a"}
 
-    with st.form(key=f"form_{group['id']}_{hnum}"):
-        scores_input = {}
-        for idx, player in enumerate(players):
-            course_hcp = player["course_handicap"]
-            received = sf.strokes_received(course_hcp, hh)
-            existing = existing_all.get(player["id"], {})
-            saved = existing.get(hnum, {})
+    scores_input = {}
+    # Calcular net/pts fuera del form usando session_state (se actualiza con cada +/-)
+    for idx, player in enumerate(players):
+        course_hcp = player["course_handicap"]
+        received = sf.strokes_received(course_hcp, hh)
+        existing = existing_all.get(player["id"], {})
+        saved = existing.get(hnum, {})
+        color = COLORS[idx % len(COLORS)]
+        ventaja = f" | Ventaja: {received}" if received > 0 else ""
+        gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
+        if gross_key not in st.session_state:
+            st.session_state[gross_key] = saved.get("strokes", None)
+        gross_val = st.session_state[gross_key]
 
-            color = COLORS[idx % len(COLORS)]
-            ventaja = f" | Ventaja: {received}" if received > 0 else ""
-
-            gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
-            if gross_key not in st.session_state:
-                st.session_state[gross_key] = saved.get("strokes", None)
-            current_gross = st.session_state[gross_key]
-
-            # ── Card header ──
-            st.markdown(
-                f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
-                f"<b>{player['player_name']}</b> "
-                f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-
-            # ── Number input dentro del form ──
+        # Card header
+        st.markdown(
+            f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
+            f"<b>{player['player_name']}</b> "
+            f"<span style='color:#555;font-size:0.85rem'>HCP {course_hcp}{ventaja}</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+        # Input DENTRO de un mini-form por jugador para no refrescar
+        with st.form(key=f"form_{group['id']}_{hnum}_{player['id']}"):
             gross = st.number_input(
                 "Golpes",
                 min_value=1, max_value=20,
-                value=current_gross,
+                value=gross_val,
                 step=1,
                 key=gross_key,
                 placeholder="—",
                 label_visibility="collapsed",
             )
+            st.form_submit_button("✅", use_container_width=False)
+
+        # Net/pts FUERA del form — se recalcula en cada rerun con valor actual
+        gross_now = st.session_state.get(gross_key)
+        if gross_now is not None:
+            calc = sf.calc_hole(gross_now, par, course_hcp, hh)
+            pts = calc["points"]
+            net = calc["net"]
+            pts_color = PTS_COLORS.get(pts, "#ef9a9a")
+            st.markdown(
+                f"<div style='display:flex;justify-content:space-between;padding:4px 10px 8px 10px;"
+                f"background:{color};border-radius:0 0 10px 10px;margin-bottom:14px'>"
+                f"<span style='font-size:0.85rem;color:#555'>Net: <b>{net}</b></span>"
+                f"<span style='background:{pts_color};border-radius:8px;padding:1px 10px;"
+                f"font-weight:bold;font-size:0.9rem'>{pts} pts</span>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+            scores_input[player["id"]] = {"player": player, "gross": gross_now, "calc": calc}
+        else:
             st.markdown(
                 f"<div style='background:{color};border-radius:0 0 10px 10px;height:5px;margin-bottom:14px'></div>",
                 unsafe_allow_html=True
             )
+            scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
 
-            if gross is not None:
-                calc = sf.calc_hole(gross, par, course_hcp, hh)
-                scores_input[player["id"]] = {
-                    "player": player,
-                    "gross": gross,
-                    "calc": calc
-                }
-                pts = calc["points"]
-                net = calc["net"]
-                pts_color = PTS_COLORS.get(pts, "#ef9a9a")
-                st.markdown(
-                    f"<div style='display:flex;justify-content:space-between;padding:4px 10px 6px 10px;"
-                    f"background:{color};border-radius:0 0 10px 10px;margin-bottom:14px'>"
-                    f"<span style='font-size:0.85rem;color:#555'>Net: <b>{net}</b></span>"
-                    f"<span style='background:{pts_color};border-radius:8px;padding:1px 10px;"
-                    f"font-weight:bold;font-size:0.9rem'>{pts} pts</span>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-            else:
-                scores_input[player["id"]] = {"player": player, "gross": None, "calc": None}
-
-        all_captured = all(v["gross"] is not None for v in scores_input.values())
+    all_captured = all(v["gross"] is not None for v in scores_input.values())
+    with st.form(key=f"form_save_{group['id']}_{hnum}"):
         submitted = st.form_submit_button(f"💾 Guardar Hoyo {hnum}", type="primary", use_container_width=True, disabled=not all_captured)
 
     if submitted:
