@@ -404,7 +404,6 @@ def _capture_group_scores(torneo, group):
     PTS_COLORS = {4: "#66bb6a", 3: "#aed581", 2: "#fff176", 1: "#ffb74d", 0: "#ef9a9a"}
 
     scores_input = {}
-    # Calcular net/pts fuera del form usando session_state (se actualiza con cada +/-)
     for idx, player in enumerate(players):
         course_hcp = player["course_handicap"]
         received = sf.strokes_received(course_hcp, hh)
@@ -415,7 +414,6 @@ def _capture_group_scores(torneo, group):
         gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
         if gross_key not in st.session_state:
             st.session_state[gross_key] = saved.get("strokes", None)
-        gross_val = st.session_state[gross_key]
 
         # Card header
         st.markdown(
@@ -425,23 +423,18 @@ def _capture_group_scores(torneo, group):
             f"</div>",
             unsafe_allow_html=True
         )
-        # Input DENTRO de un mini-form por jugador para no refrescar
-        with st.form(key=f"form_{group['id']}_{hnum}_{player['id']}"):
-            gross = st.number_input(
-                "Golpes",
-                min_value=1, max_value=20,
-                value=gross_val,
-                step=1,
-                key=gross_key,
-                placeholder="—",
-                label_visibility="collapsed",
-            )
-            st.form_submit_button("✅", use_container_width=False)
-
-        # Net/pts FUERA del form — se recalcula en cada rerun con valor actual
-        gross_now = st.session_state.get(gross_key)
-        if gross_now is not None:
-            calc = sf.calc_hole(gross_now, par, course_hcp, hh)
+        gross = st.number_input(
+            "Golpes",
+            min_value=1, max_value=20,
+            value=st.session_state[gross_key],
+            step=1,
+            key=gross_key,
+            placeholder="—",
+            label_visibility="collapsed",
+        )
+        # Net/pts en tiempo real
+        if gross is not None:
+            calc = sf.calc_hole(gross, par, course_hcp, hh)
             pts = calc["points"]
             net = calc["net"]
             pts_color = PTS_COLORS.get(pts, "#ef9a9a")
@@ -454,7 +447,7 @@ def _capture_group_scores(torneo, group):
                 f"</div>",
                 unsafe_allow_html=True
             )
-            scores_input[player["id"]] = {"player": player, "gross": gross_now, "calc": calc}
+            scores_input[player["id"]] = {"player": player, "gross": gross, "calc": calc}
         else:
             st.markdown(
                 f"<div style='background:{color};border-radius:0 0 10px 10px;height:5px;margin-bottom:14px'></div>",
