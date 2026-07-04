@@ -414,9 +414,11 @@ def _capture_group_scores(torneo, group):
         ventaja = f" | Ventaja: {received}" if received > 0 else ""
 
         gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
-        # Valor inicial: si ya hay un score guardado usarlo, si no None (blanco)
-        # No escribir en session_state para evitar reruns en cada cambio
-        current_gross = saved.get("strokes", None)
+        # Valor inicial: solo setear la primera vez que se ve este hoyo+jugador
+        # Si ya existe en session_state (usuario lo modificó), no tocar
+        if gross_key not in st.session_state:
+            st.session_state[gross_key] = saved.get("strokes", None)
+        current_gross = st.session_state[gross_key]
 
         # ── Card header ──
         st.markdown(
@@ -433,6 +435,7 @@ def _capture_group_scores(torneo, group):
             min_value=1, max_value=20,
             value=current_gross,
             step=1,
+            key=gross_key,
             placeholder="—",
             label_visibility="collapsed",
         )
