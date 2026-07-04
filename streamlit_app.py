@@ -292,6 +292,9 @@ def capture_scores_ui():
         st.warning("No hay jugadores en este torneo.")
         return
 
+    # Hoyos con scores ya guardados
+    saved_holes = {s["hole_number"] for s in db.get_scores(torneo["id"])}
+
     # Selector de hoyo
     hole_list = [
         f"{('✅ ' if h['hole_number'] in saved_holes else '')}Hoyo {h['hole_number']} — Par {h['par']} | HCP {h['handicap']}"
