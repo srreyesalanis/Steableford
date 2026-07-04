@@ -92,11 +92,13 @@ def admin_login():
 
 def admin_panel():
     st.title("⛳ Admin — Stableford")
-    tab_create, tab_scores, tab_delete = st.tabs(["➕ Crear Torneo", "🎯 Capturar Scores", "🗑️ Borrar Torneo"])
+    tab_create, tab_scores, tab_codes, tab_delete = st.tabs(["➕ Crear Torneo", "🎯 Capturar Scores", "🔑 Ver Códigos", "🗑️ Borrar Torneo"])
     with tab_create:
         create_tournament_ui()
     with tab_scores:
         capture_scores_ui(admin=True)
+    with tab_codes:
+        view_codes_ui()
     with tab_delete:
         delete_tournament_ui()
 
@@ -238,7 +240,37 @@ def create_tournament_ui():
             )
         st.balloons()
 
-# ── Borrar Torneo ──────────────────────────────────────────────────────────────
+# ── Ver Códigos ───────────────────────────────────────────────────────────────
+
+def view_codes_ui():
+    st.header("🔑 Códigos de Grupo")
+    tournaments = db.get_tournaments()
+    if not tournaments:
+        st.info("No hay torneos creados.")
+        return
+
+    t_map = {t['name']: t for t in tournaments}
+    t_label = st.selectbox("Torneo", list(t_map.keys()), key="codes_tournament")
+    torneo = t_map[t_label]
+
+    grupos = db.get_groups(torneo["id"])
+    if not grupos:
+        st.warning("Este torneo no tiene grupos.")
+        return
+
+    for g in grupos:
+        players = db.get_group_players(g["id"])
+        names = ", ".join(p["player_name"] for p in players) or "Sin jugadores"
+        st.markdown(
+            f"<div style='background:#e8f5e9;border-radius:10px;padding:12px 16px;margin-bottom:10px'>"
+            f"<b>{g['name']}</b><br>"
+            f"<span style='font-size:2rem;font-weight:bold;letter-spacing:6px'>{g['access_code']}</span><br>"
+            f"<span style='color:#555;font-size:0.85rem'>{names}</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+
 
 def delete_tournament_ui():
     st.header("🗑️ Borrar Torneo")
