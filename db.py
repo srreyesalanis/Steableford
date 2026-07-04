@@ -45,6 +45,8 @@ def get_courses():
 
 
 def get_tees(course_id: str):
+    if not course_id:
+        return []
     sb = get_client()
     return (
         sb.table("tees")
@@ -55,6 +57,8 @@ def get_tees(course_id: str):
 
 
 def get_holes(course_id: str):
+    if not course_id:
+        return []
     sb = get_client()
     return (
         sb.table("holes")
