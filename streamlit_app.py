@@ -546,11 +546,8 @@ def leaderboard_ui():
             _winner_card("Back 9", dict(back_pts_map), "🌆", common_label)
         with col3:
             _winner_card("Torneo", dict(total_common_map), "🎖️", common_label)
-        st.divider()
-
 
     if hole_nums and any(detail.values()):
-        st.divider()
         st.subheader("📊 Detalle por hoyo")
 
         header = "<tr><th style='text-align:left;padding:4px 8px'>Jugador</th>"
