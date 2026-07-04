@@ -491,29 +491,46 @@ def leaderboard_ui():
         ranked.append({"pid": pid, "name": p["player_name"], "pts": pts_by_player.get(pid, 0), "hoyos": holes_by_player.get(pid, 0)})
     ranked.sort(key=lambda x: -x["pts"])
 
-    # ── Compute front/back per player ──────────────────────────────────────────
+    # ── Hoyo común: el más avanzado que TODOS los jugadores tienen ────────────
+    all_pids = [p.get("player_id") or p.get("guest_id") for p in players]
+    if all_pids and all(pid in detail for pid in all_pids):
+        common_holes = sorted(
+            set.intersection(*[set(detail[pid].keys()) for pid in all_pids])
+        )
+    else:
+        common_holes = []
+    last_common = max(common_holes) if common_holes else 0
+
+    # Front común: hoyos 1-9 que todos tienen; Back: hoyos 10-18 que todos tienen
+    common_front = [h for h in common_holes if h <= 9]
+    common_back  = [h for h in common_holes if h > 9]
+
     front_pts_map = defaultdict(int)
-    back_pts_map = defaultdict(int)
-    for pid_w, h_detail in detail.items():
-        for hnum, hd in h_detail.items():
-            if hnum <= 9:
-                front_pts_map[pid_w] += hd["points"]
-            else:
-                back_pts_map[pid_w] += hd["points"]
+    back_pts_map  = defaultdict(int)
+    total_common_map = defaultdict(int)
+    for pid_w in all_pids:
+        for hnum in common_front:
+            front_pts_map[pid_w] += detail[pid_w].get(hnum, {}).get("points", 0)
+        for hnum in common_back:
+            back_pts_map[pid_w] += detail[pid_w].get(hnum, {}).get("points", 0)
+        total_common_map[pid_w] = front_pts_map[pid_w] + back_pts_map[pid_w]
+
+    common_label = f"(hasta H{last_common})" if last_common else "(sin datos)"
 
     pid_to_name = {(p.get("player_id") or p.get("guest_id")): p["player_name"] for p in players}
 
-    def _winner_card(label, pts_map, icon):
+    def _winner_card(label, pts_map, icon, subtitle=""):
         if not pts_map:
             return
         best_pts = max(pts_map.values())
         winners = [pid_to_name.get(p, "?") for p, v in pts_map.items() if v == best_pts]
         names_str = " / ".join(winners)
         tie_label = " 🤝 Empate" if len(winners) > 1 else ""
+        sub_html = f"<br><span style='font-size:0.72rem;color:#aaa'>{subtitle}</span>" if subtitle else ""
         st.markdown(
             f"<div style='background:#fff8e1;border-left:4px solid #ffc107;border-radius:8px;"
             f"padding:10px 14px;margin-bottom:8px'>"
-            f"<span style='font-size:0.8rem;color:#888'>{icon} {label}{tie_label}</span><br>"
+            f"<span style='font-size:0.8rem;color:#888'>{icon} {label}{tie_label}</span>{sub_html}<br>"
             f"<b style='font-size:1.1rem'>{names_str}</b>"
             f"<span style='color:#f57c00;margin-left:8px;font-weight:bold'>{best_pts} pts</span>"
             f"</div>",
@@ -521,15 +538,14 @@ def leaderboard_ui():
         )
 
     if ranked:
-        st.markdown("### 🏆 Ganadores")
+        st.markdown(f"### 🏆 Ganadores {common_label}")
         col1, col2, col3 = st.columns(3)
         with col1:
-            _winner_card("Front 9", front_pts_map, "🌅")
+            _winner_card("Front 9", dict(front_pts_map), "🌅", common_label)
         with col2:
-            _winner_card("Back 9", back_pts_map, "🌆")
+            _winner_card("Back 9", dict(back_pts_map), "🌆", common_label)
         with col3:
-            winner_total = {r["pid"]: r["pts"] for r in ranked}
-            _winner_card("Torneo", winner_total, "🎖️")
+            _winner_card("Torneo", dict(total_common_map), "🎖️", common_label)
         st.divider()
 
 
