@@ -5,7 +5,12 @@ from supabase import create_client
 import streamlit as st
 
 
-@st.cache_resource
+import math
+
+
+def round_hcp(value: float) -> int:
+    """Redondea hándicap: .5 siempre sube."""
+    return math.floor(value + 0.5)
 def get_client():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 

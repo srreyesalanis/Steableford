@@ -145,8 +145,8 @@ def create_tournament_ui():
             if name != "— Seleccionar —":
                 p = player_map[name]
                 hcp_default = float(p["current_handicap"] or 0)
-                hcp = cols[2].number_input("Hándicap", value=int(round(hcp_default)), step=1, min_value=0, max_value=54, key=f"hcp_{i}")
-                manual = hcp != int(round(hcp_default))
+                hcp = cols[2].number_input("Hándicap", value=db.round_hcp(hcp_default), step=1, min_value=0, max_value=54, key=f"hcp_{i}")
+                manual = hcp != db.round_hcp(hcp_default)
                 rows[i]["data"] = {"name": name, "player_id": p["id"], "handicap_index": float(hcp), "manual_hcp": manual}
             else:
                 rows[i]["data"] = None
@@ -189,7 +189,7 @@ def create_tournament_ui():
 
         for r in valid:
             d = r["data"]
-            ch = int(round(d["handicap_index"]))
+            ch = db.round_hcp(d["handicap_index"])
             guest_id = None
             player_id = d.get("player_id")
 
