@@ -1,22 +1,21 @@
 """
 db.py — Supabase helpers para la app Stableford
 """
+import math
 from supabase import create_client
 import streamlit as st
-
-
-import math
 
 
 def round_hcp(value: float) -> int:
     """Redondea hándicap: .5 siempre sube."""
     return math.floor(value + 0.5)
+
+
 def get_client():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 
 def get_authed_client():
-    """Crea un cliente fresco con el token del usuario autenticado."""
     access_token = st.session_state.get("access_token")
     refresh_token = st.session_state.get("refresh_token")
     if access_token and refresh_token:
@@ -27,7 +26,6 @@ def get_authed_client():
 
 
 def sign_in(email: str, password: str):
-    """Autentica con Supabase Auth. Regresa el objeto session o lanza excepción."""
     sb = get_client()
     res = sb.auth.sign_in_with_password({"email": email, "password": password})
     return res.session
@@ -39,7 +37,6 @@ def sign_out():
 
 
 def refresh_session(refresh_token: str):
-    """Renueva el access token usando el refresh token guardado."""
     sb = get_client()
     res = sb.auth.refresh_session(refresh_token)
     return res.session
@@ -49,8 +46,7 @@ def refresh_session(refresh_token: str):
 
 def get_players():
     sb = get_authed_client()
-    res = sb.table("players").select("id, name, current_handicap").order("name").execute()
-    return res.data or []
+    return (sb.table("players").select("id, name, current_handicap").order("name").execute()).data or []
 
 
 # ── Courses / Tees / Holes ─────────────────────────────────────────────────────
@@ -64,68 +60,41 @@ def get_tees(course_id: str):
     if not course_id:
         return []
     sb = get_authed_client()
-    return (
-        sb.table("tees")
-        .select("id, name, color, rating, slope, par")
-        .eq("course_id", course_id)
-        .execute()
-    ).data or []
+    return (sb.table("tees").select("id, name, color, rating, slope, par").eq("course_id", course_id).execute()).data or []
 
 
 def get_holes(course_id: str):
     if not course_id:
         return []
     sb = get_authed_client()
-    return (
-        sb.table("holes")
-        .select("id, hole_number, par, handicap")
-        .eq("course_id", course_id)
-        .order("hole_number")
-        .execute()
-    ).data or []
+    return (sb.table("holes").select("id, hole_number, par, handicap").eq("course_id", course_id).order("hole_number").execute()).data or []
 
 
 # ── Tournaments ────────────────────────────────────────────────────────────────
 
 def create_tournament(name: str, date: str, tee_id: str, access_code: str):
     sb = get_authed_client()
-    res = (
-        sb.table("tournaments")
-        .insert({"name": name, "date": date, "tee_id": tee_id,
-                 "format": "stableford", "access_code": access_code})
-        .execute()
-    )
+    res = sb.table("tournaments").insert({
+        "name": name, "date": date, "tee_id": tee_id,
+        "format": "stableford", "access_code": access_code
+    }).execute()
     return res.data[0] if res.data else None
 
 
 def get_tournaments():
     sb = get_authed_client()
-    return (
-        sb.table("tournaments")
-        .select("id, name, date, access_code, tee_id")
-        .order("date", desc=True)
-        .execute()
-    ).data or []
+    return (sb.table("tournaments").select("id, name, date, access_code, tee_id").order("date", desc=True).execute()).data or []
 
 
 def get_tournament(tournament_id: str):
     sb = get_authed_client()
-    res = (
-        sb.table("tournaments")
-        .select("id, name, date, access_code, tee_id")
-        .eq("id", tournament_id)
-        .single()
-        .execute()
-    )
-    return res.data
+    res = sb.table("tournaments").select("id, name, date, access_code, tee_id").eq("id", tournament_id).execute()
+    return res.data[0] if res.data else None
 
 
 def delete_tournament(tournament_id: str):
-    """Borra el torneo y todo lo relacionado en cascada."""
     sb = get_authed_client()
-    # Borrar en orden: scores → group_players → groups → guests → tournament
     sb.table("tournament_scores").delete().eq("tournament_id", tournament_id).execute()
-    # Obtener grupos para borrar group_players
     groups = sb.table("groups").select("id").eq("tournament_id", tournament_id).execute().data or []
     for g in groups:
         sb.table("group_players").delete().eq("group_id", g["id"]).execute()
@@ -138,22 +107,28 @@ def delete_tournament(tournament_id: str):
 
 def create_group(tournament_id: str, name: str, access_code: str):
     sb = get_authed_client()
-    res = (
-        sb.table("groups")
-        .insert({"tournament_id": tournament_id, "name": name, "access_code": access_code})
-        .execute()
-    )
+    res = sb.table("groups").insert({
+        "tournament_id": tournament_id, "name": name, "access_code": access_code
+    }).execute()
     return res.data[0] if res.data else None
 
 
 def get_groups(tournament_id: str):
     sb = get_authed_client()
-    return (
-        sb.table("groups")
-        .select("id, name, access_code")
-        .eq("tournament_id", tournament_id)
-        .execute()
-    ).data or []
+    return (sb.table("groups").select("id, name, access_code").eq("tournament_id", tournament_id).execute()).data or []
+
+
+def get_group_by_code(code: str):
+    """Busca un grupo por su código numérico y devuelve {group, torneo} o None."""
+    sb = get_authed_client()
+    res = sb.table("groups").select("id, name, access_code, tournament_id").eq("access_code", code).execute()
+    if not res.data:
+        return None
+    group = res.data[0]
+    torneo_res = sb.table("tournaments").select("id, name, date, tee_id, access_code").eq("id", group["tournament_id"]).execute()
+    if not torneo_res.data:
+        return None
+    return {"group": group, "torneo": torneo_res.data[0]}
 
 
 # ── Group Players ──────────────────────────────────────────────────────────────
@@ -178,22 +153,14 @@ def add_group_player(group_id: str, player_name: str, course_handicap: int,
 
 def get_group_players(group_id: str):
     sb = get_authed_client()
-    return (
-        sb.table("group_players")
-        .select("id, player_id, guest_id, player_name, course_handicap")
-        .eq("group_id", group_id)
-        .execute()
-    ).data or []
+    return (sb.table("group_players").select("id, player_id, guest_id, player_name, course_handicap").eq("group_id", group_id).execute()).data or []
 
 
 def get_all_tournament_players(tournament_id: str):
-    """Devuelve todos los jugadores de todos los grupos de un torneo."""
-    sb = get_authed_client()
     groups = get_groups(tournament_id)
     players = []
     for g in groups:
-        gp = get_group_players(g["id"])
-        for p in gp:
+        for p in get_group_players(g["id"]):
             p["group_name"] = g["name"]
             p["group_id"] = g["id"]
             players.append(p)
@@ -223,13 +190,7 @@ def upsert_score(tournament_id: str, hole_number: int, strokes: int,
                  net_strokes: int, group_id: str,
                  player_id: str = None, guest_id: str = None, pair_name: str = ""):
     sb = get_authed_client()
-    # Buscar si ya existe
-    q = (
-        sb.table("tournament_scores")
-        .select("id")
-        .eq("tournament_id", tournament_id)
-        .eq("hole_number", hole_number)
-    )
+    q = sb.table("tournament_scores").select("id").eq("tournament_id", tournament_id).eq("hole_number", hole_number)
     if player_id:
         q = q.eq("player_id", player_id)
     if guest_id:
@@ -257,55 +218,12 @@ def upsert_score(tournament_id: str, hole_number: int, strokes: int,
 
 def get_scores(tournament_id: str):
     sb = get_authed_client()
-    return (
-        sb.table("tournament_scores")
-        .select("player_id, guest_id, hole_number, strokes, net_strokes, group_id")
-        .eq("tournament_id", tournament_id)
-        .execute()
-    ).data or []
+    return (sb.table("tournament_scores").select("player_id, guest_id, hole_number, strokes, net_strokes, group_id").eq("tournament_id", tournament_id).execute()).data or []
 
 
 def get_player_scores(tournament_id: str, player_id: str = None, guest_id: str = None):
     sb = get_authed_client()
-    q = (
-        sb.table("tournament_scores")
-        .select("hole_number, strokes, net_strokes")
-        .eq("tournament_id", tournament_id)
-    )
-    if player_id:
-        q = q.eq("player_id", player_id)
-    if guest_id:
-        q = q.eq("guest_id", guest_id)
-    return {r["hole_number"]: r for r in (q.execute().data or [])}
-
-
-    """Busca un grupo por su código numérico y devuelve {group, torneo} o None."""
-    sb = get_authed_client()
-    res = (
-        sb.table("groups")
-        .select("id, name, access_code, tournament_id")
-        .eq("access_code", code)
-        .execute()
-    )
-    if not res.data:
-        return None
-    group = res.data[0]
-    torneo_res = (
-        sb.table("tournaments")
-        .select("id, name, date, tee_id, access_code")
-        .eq("id", group["tournament_id"])
-        .execute()
-    )
-    if not torneo_res.data:
-        return None
-    return {"group": group, "torneo": torneo_res.data[0]}
-
-    sb = get_authed_client()
-    q = (
-        sb.table("tournament_scores")
-        .select("hole_number, strokes, net_strokes")
-        .eq("tournament_id", tournament_id)
-    )
+    q = sb.table("tournament_scores").select("hole_number, strokes, net_strokes").eq("tournament_id", tournament_id)
     if player_id:
         q = q.eq("player_id", player_id)
     if guest_id:
