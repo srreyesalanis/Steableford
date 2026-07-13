@@ -431,6 +431,7 @@ def _capture_group_scores(torneo, group):
         ventaja = f" | Ventaja: {received}" if received > 0 else ""
         gross_key = f"gross_{hnum}_{group['id']}_{player['id']}"
         current_gross = saved.get("strokes", None)
+        default_gross = int(current_gross) if current_gross is not None else par  # default al par si no hay score
         st.markdown(
             f"<div style='background:{color};border-radius:10px 10px 0 0;padding:8px 14px 6px 14px'>"
             f"<b>{player['player_name']}</b> "
@@ -441,9 +442,8 @@ def _capture_group_scores(torneo, group):
         gross = st.number_input(
             f"Golpes — {player['player_name']}",
             min_value=1, max_value=20,
-            value=current_gross,
+            value=default_gross,
             step=1,
-            placeholder="—",
             label_visibility="collapsed",
         )
         # Net/pts en tiempo real
