@@ -414,9 +414,8 @@ def _capture_group_scores(torneo, group):
     hole_label = st.selectbox("Hoyo", hole_list, index=default_idx)
     hole = hole_options[hole_label]
     hnum = hole["hole_number"]
-
-    # Actualizar URL con el hoyo actual
-    st.query_params["hole"] = str(hnum)
+    par = hole["par"]
+    hh = hole["handicap"]
     par = hole["par"]
     hh = hole["handicap"]
 
@@ -507,9 +506,10 @@ def _capture_group_scores(torneo, group):
             st.success("🏁 ¡Ronda completa!")
             st.balloons()
         else:
-            ss_set(f"hole_idx_{group['id']}", hnum)  # Ir al siguiente hoyo
-            st.success(f"✅ Hoyo {hnum} guardado — siguiente: Hoyo {hnum + 1}")
-            st.rerun()  # Rerun inmediato para cargar el siguiente hoyo
+            next_idx = hnum  # hnum es 1-based, así que hnum = índice del siguiente
+            ss_set(f"hole_idx_{group['id']}", next_idx)
+            st.query_params["hole"] = str(hnum + 1)
+            st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LEADERBOARD
