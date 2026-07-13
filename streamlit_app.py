@@ -494,8 +494,9 @@ def _capture_group_scores(torneo, group):
             st.success("🏁 ¡Ronda completa!")
             st.balloons()
         else:
-            ss_set(f"hole_idx_{group['id']}", hnum)
+            ss_set(f"hole_idx_{group['id']}", hnum)  # Ir al siguiente hoyo
             st.success(f"✅ Hoyo {hnum} guardado — siguiente: Hoyo {hnum + 1}")
+            st.rerun()  # Rerun inmediato para cargar el siguiente hoyo
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LEADERBOARD
