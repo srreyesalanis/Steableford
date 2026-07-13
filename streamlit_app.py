@@ -457,6 +457,7 @@ def _capture_group_scores(torneo, group):
             step=1,
             placeholder="—",
             label_visibility="collapsed",
+            key=f"gross_{group['id']}_{hnum}_{player['id']}",
         )
         # Net/pts en tiempo real
         if gross is not None:
