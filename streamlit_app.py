@@ -400,10 +400,23 @@ def _capture_group_scores(torneo, group):
     ]
     hole_options = {label: hole for label, hole in zip(hole_list, holes)}
 
+    # Leer hoyo desde URL si existe, si no usar session_state
+    url_hole = st.query_params.get("hole", None)
+    if url_hole is not None:
+        try:
+            url_idx = int(url_hole) - 1
+            if 0 <= url_idx < len(holes):
+                ss_set(f"hole_idx_{group['id']}", url_idx)
+        except ValueError:
+            pass
+
     default_idx = ss_get(f"hole_idx_{group['id']}", 0)
     hole_label = st.selectbox("Hoyo", hole_list, index=default_idx)
     hole = hole_options[hole_label]
     hnum = hole["hole_number"]
+
+    # Actualizar URL con el hoyo actual
+    st.query_params["hole"] = str(hnum)
     par = hole["par"]
     hh = hole["handicap"]
 
